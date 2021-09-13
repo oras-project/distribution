@@ -10,11 +10,19 @@ import (
 	"github.com/distribution/distribution/v3/manifest"
 	"github.com/distribution/distribution/v3/manifest/manifestlist"
 	"github.com/distribution/distribution/v3/manifest/ocischema"
+	"github.com/distribution/distribution/v3/manifest/orasartifact"
 	"github.com/distribution/distribution/v3/manifest/schema1"
 	"github.com/distribution/distribution/v3/manifest/schema2"
+	"github.com/distribution/distribution/v3/registry/storage/driver"
 	"github.com/opencontainers/go-digest"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
+	orasartifactv1 "github.com/oras-project/artifacts-spec/specs-go/v1"
 )
+
+// referrersStoreFunc describes a function that returns the referrers store
+// for the given manifest of the given artifactType.
+// A referrers store provides links to referrer manifests.
+type referrersStoreFunc func(ctx context.Context, revision digest.Digest, artifactType string) *linkedBlobStore
 
 // A ManifestHandler gets and puts manifests of a particular type.
 type ManifestHandler interface {
@@ -52,6 +60,9 @@ type manifestStore struct {
 	schema2Handler      ManifestHandler
 	ocischemaHandler    ManifestHandler
 	manifestListHandler ManifestHandler
+	orasArtifactHandler ManifestHandler
+
+	referrersStore referrersStoreFunc
 }
 
 var _ distribution.ManifestService = &manifestStore{}
@@ -121,9 +132,10 @@ func (ms *manifestStore) Get(ctx context.Context, dgst digest.Digest, options ..
 		default:
 			return nil, distribution.ErrManifestVerification{fmt.Errorf("unrecognized manifest content type %s", versioned.MediaType)}
 		}
+	default:
+		// Assume it's an ORAS artifact manifest.
+		return ms.orasArtifactHandler.Unmarshal(ctx, dgst, content)
 	}
-
-	return nil, fmt.Errorf("unrecognized manifest schema version %d", versioned.SchemaVersion)
 }
 
 func (ms *manifestStore) Put(ctx context.Context, manifest distribution.Manifest, options ...distribution.ManifestServiceOption) (digest.Digest, error) {
@@ -138,9 +150,54 @@ func (ms *manifestStore) Put(ctx context.Context, manifest distribution.Manifest
 		return ms.ocischemaHandler.Put(ctx, manifest, ms.skipDependencyVerification)
 	case *manifestlist.DeserializedManifestList:
 		return ms.manifestListHandler.Put(ctx, manifest, ms.skipDependencyVerification)
+	case *orasartifact.DeserializedManifest:
+		return ms.orasArtifactHandler.Put(ctx, manifest, ms.skipDependencyVerification)
 	}
 
 	return "", fmt.Errorf("unrecognized manifest type %T", manifest)
+}
+
+// Referrers returns referrer manifests filtered by the given referrerType.
+func (ms *manifestStore) Referrers(ctx context.Context, revision digest.Digest, referrerType string) ([]orasartifactv1.Descriptor, error) {
+	dcontext.GetLogger(ms.ctx).Debug("(*manifestStore).Referrers")
+
+	var referrers []orasartifactv1.Descriptor
+
+	err := ms.referrersStore(ctx, revision, referrerType).Enumerate(ctx, func(referrerRevision digest.Digest) error {
+		man, err := ms.Get(ctx, referrerRevision)
+		if err != nil {
+			return err
+		}
+
+		orasArtifactMan, ok := man.(*orasartifact.DeserializedManifest)
+		if !ok {
+			// The PUT handler would guard against this situation. Skip this manifest.
+			return nil
+		}
+
+		desc, err := ms.blobStore.Stat(ctx, referrerRevision)
+		if err != nil {
+			return err
+		}
+		desc.MediaType, _, _ = man.Payload()
+		referrers = append(referrers, orasartifactv1.Descriptor{
+			MediaType:    desc.MediaType,
+			Size:         desc.Size,
+			Digest:       desc.Digest,
+			ArtifactType: orasArtifactMan.ArtifactType(),
+		})
+		return nil
+	})
+
+	if err != nil {
+		switch err.(type) {
+		case driver.PathNotFoundError:
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	return referrers, nil
 }
 
 // Delete removes the revision of the specified manifest.

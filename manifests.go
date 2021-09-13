@@ -6,6 +6,7 @@ import (
 	"mime"
 
 	"github.com/opencontainers/go-digest"
+	orasartifact "github.com/oras-project/artifacts-spec/specs-go/v1"
 )
 
 // Manifest represents a registry object specifying a set of
@@ -61,6 +62,10 @@ type ManifestService interface {
 	// Delete removes the manifest specified by the given digest. Deleting
 	// a manifest that doesn't exist will return ErrManifestNotFound
 	Delete(ctx context.Context, dgst digest.Digest) error
+
+	// Referrers returns a collection of manifests which reference the given manifest,
+	// filtered by artifactType.
+	Referrers(ctx context.Context, dgst digest.Digest, artifactType string) ([]orasartifact.Descriptor, error)
 }
 
 // ManifestEnumerator enables iterating over manifests

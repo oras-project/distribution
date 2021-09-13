@@ -9,6 +9,7 @@ import (
 	"github.com/distribution/distribution/v3/reference"
 	"github.com/distribution/distribution/v3/registry/proxy/scheduler"
 	"github.com/opencontainers/go-digest"
+	orasartifacts "github.com/oras-project/artifacts-spec/specs-go/v1"
 )
 
 // todo(richardscothern): from cache control header or config
@@ -24,6 +25,10 @@ type proxyManifestStore struct {
 }
 
 var _ distribution.ManifestService = &proxyManifestStore{}
+
+func (pms proxyManifestStore) Referrers(_ context.Context, _ digest.Digest, _ string) ([]orasartifacts.Descriptor, error) {
+	return nil, distribution.ErrUnsupported
+}
 
 func (pms proxyManifestStore) Exists(ctx context.Context, dgst digest.Digest) (bool, error) {
 	exists, err := pms.localManifests.Exists(ctx, dgst)

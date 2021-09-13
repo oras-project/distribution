@@ -24,6 +24,7 @@ import (
 	"github.com/distribution/distribution/v3/notifications"
 	"github.com/distribution/distribution/v3/reference"
 	"github.com/distribution/distribution/v3/registry/api/errcode"
+	v1 "github.com/distribution/distribution/v3/registry/api/oras/artifacts/v1"
 	v2 "github.com/distribution/distribution/v3/registry/api/v2"
 	"github.com/distribution/distribution/v3/registry/auth"
 	registrymiddleware "github.com/distribution/distribution/v3/registry/middleware/registry"
@@ -110,6 +111,10 @@ func NewApp(ctx context.Context, config *configuration.Configuration) *App {
 	app.register(v2.RouteNameBlob, blobDispatcher)
 	app.register(v2.RouteNameBlobUpload, blobUploadDispatcher)
 	app.register(v2.RouteNameBlobUploadChunk, blobUploadDispatcher)
+
+	// Register ORAS artifact routes.
+	app.router = v1.AddPaths(app.router)
+	app.register(v1.RouteNameReferrers, referrersDispatcher)
 
 	// override the storage driver's UA string for registry outbound HTTP requests
 	storageParams := config.Storage.Parameters()

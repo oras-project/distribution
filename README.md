@@ -1,73 +1,160 @@
 # Distribution
 
-The toolset to pack, ship, store, and deliver content.
+This fork of [distribution/distribution](distribution-distribution) provides
+an experimental implementation of [reference types](reference-types).
 
-This repository's main product is the Open Source Registry implementation
-for storing and distributing container images using the
-[OCI Distribution Specification](https://github.com/opencontainers/distribution-spec).
-The goal of this project is to provide a simple, secure, and scalable base
-for building a large scale registry solution or running a simple private registry.
-It is a core library for many registry operators including Docker Hub, GitHub Container Registry,
-GitLab Container Registry and DigitalOcean Container Registry, as well as the CNCF Harbor
-Project, and VMware Harbor Registry.
+Features supported:
 
-<img src="/distribution-logo.svg" width="200px" />
+- :heavy_check_mark: PUT ORAS Artifact Manifest
+- :heavy_check_mark: GET ORAS Artifact Manifest
+- :heavy_check_mark: LIST referrers
+  - [ ] Pagination support
+- [ ] Garbage Collection of reference types
 
-[![Build Status](https://github.com/distribution/distribution/workflows/CI/badge.svg?branch=main&event=push)](https://github.com/distribution/distribution/actions?query=workflow%3ACI)
-[![GoDoc](https://img.shields.io/badge/go.dev-reference-007d9c?logo=go&logoColor=white&style=flat-square)](https://pkg.go.dev/github.com/distribution/distribution)
-[![License: Apache-2.0](https://img.shields.io/badge/License-Apache--2.0-blue.svg)](LICENSE)
-[![codecov](https://codecov.io/gh/distribution/distribution/branch/main/graph/badge.svg)](https://codecov.io/gh/distribution/distribution)
-[![FOSSA Status](https://app.fossa.com/api/projects/custom%2B162%2Fgithub.com%2Fdistribution%2Fdistribution.svg?type=shield)](https://app.fossa.com/projects/custom%2B162%2Fgithub.com%2Fdistribution%2Fdistribution?ref=badge_shield)
-[![OCI Conformance](https://github.com/distribution/distribution/workflows/conformance/badge.svg)](https://github.com/distribution/distribution/actions?query=workflow%3Aconformance)
+To power the `/referrers` API, the implementation creates and uses an index.
+See [referrers.md](docs/referrers.md) for details.
 
-This repository contains the following components:
+## Usage - Push, Discover, Pull
 
-|**Component**       |Description                                                                                                                                                                                         |
-|--------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| **registry**       | An implementation of the [OCI Distribution Specification](https://github.com/opencontainers/distribution-spec).                                                                                                 |
-| **libraries**      | A rich set of libraries for interacting with distribution components. Please see [godoc](https://pkg.go.dev/github.com/distribution/distribution) for details. **Note**: The interfaces for these libraries are **unstable**. |
-| **documentation**  | Docker's full documentation set is available at [docs.docker.com](https://docs.docker.com). This repository [contains the subset](docs/) related just to the registry.                                                                                                                                          |
+The following steps illustrate how ORAS artifacts can be stored and retrieved
+from a registry. The artifact in this example is a Notary V2
+[signature](signature).
 
-### How does this integrate with Docker, containerd, and other OCI client?
+### Prerequisites
 
-Clients implement against the OCI specification and communicate with the
-registry using HTTP. This project contains a client implementation which
-is currently in use by Docker, however, it is deprecated for the
-[implementation in containerd](https://github.com/containerd/containerd/tree/master/remotes/docker)
-and will not support new features.
+- Local registry prototype instance
+- [docker-generate](https://github.com/shizhMSFT/docker-generate)
+- [nv2](https://github.com/notaryproject/nv2)
+- `curl`
+- `jq`
 
-### What are the long term goals of the Distribution project?
+### Push an image to your registry
 
-The _Distribution_ project has the further long term goal of providing a
-secure tool chain for distributing content. The specifications, APIs and tools
-should be as useful with Docker as they are without.
+```shell
+# Initialize local registry variables
+regIp="127.0.0.1" && \
+  regPort="5000" && \
+  registry="$regIp:$regPort" && \
+  repo="busybox" && \
+  tag="latest" && \
+  image="$repo:$tag" && \
+  reference="$registry/$image"
 
-Our goal is to design a professional grade and extensible content distribution
-system that allow users to:
+# Pull an image from docker hub and push to local registry
+docker pull $image && \
+  docker tag $image $reference && \
+  docker push $reference
+```
 
-* Enjoy an efficient, secured and reliable way to store, manage, package and
-  exchange content
-* Hack/roll their own on top of healthy open-source components
-* Implement their own home made solution through good specs, and solid
-  extensions mechanism.
+### Generate image manifest and sign it
 
-## Contribution
+```shell
+# Generate self-signed certificates
+openssl req \
+  -x509 \
+  -sha256 \
+  -nodes \
+  -newkey rsa:2048 \
+  -days 365 \
+  -subj "/CN=$regIp/O=example inc/C=IN/ST=Haryana/L=Gurgaon" \
+  -addext "subjectAltName=IP:$regIp" \
+  -keyout example.key \
+  -out example.crt
 
-Please see [CONTRIBUTING.md](CONTRIBUTING.md) for details on how to contribute
-issues, fixes, and patches to this project. If you are contributing code, see
-the instructions for [building a development environment](BUILDING.md).
+# Generate image manifest
+manifestFile="manifest-to-sign.json" && \
+  docker generate manifest $image > $manifestFile
 
-## Communication
+# Sign manifest
+signatureFile="manifest-signature.jwt" && \
+  nv2 sign --method x509 \
+    -k example.key \
+    -c example.crt \
+    -r $reference \
+    -o $signatureFile \
+    file:$manifestFile
+```
 
-For async communication and long running discussions please use issues and pull requests on the github repo.
-This will be the best place to discuss design and implementation.
+### Obtain manifest and signature digests
 
-For sync communication we have a #distribution channel in the [CNCF Slack](https://slack.cncf.io/)
-that everyone is welcome to join and chat about development.
+```shell
+manifestDigest="sha256:$(sha256sum $manifestFile | cut -d " " -f 1)" && \
+  signatureDigest="sha256:$(sha256sum $signatureFile | cut -d " " -f 1)"
+```
 
-## Licenses
+### Create an Artifact file referencing the manifest that was signed and its signature as blob
 
-The distribution codebase is released under the [Apache 2.0 license](LICENSE).
-The README.md file, and files in the "docs" folder are licensed under the
-Creative Commons Attribution 4.0 International License. You may obtain a
-copy of the license, titled CC-BY-4.0, at http://creativecommons.org/licenses/by/4.0/.
+```shell
+artifactFile="artifact.json" && \
+  artifactMediaType="application/vnd.cncf.oras.artifact.manifest.v1+json" && \
+  artifactType="application/vnd.cncf.notary.v2" && \
+  signatureMediaType="application/vnd.cncf.notary.signature.v2+jwt" && \
+  signatureFileSize=`wc -c < $signatureFile` && \
+  manifestMediaType="$(cat $manifestFile | jq -r '.mediaType')" && \
+  manifestFileSize=`wc -c < $manifestFile`
+
+cat <<EOF > $artifactFile
+{
+  "mediaType": "$artifactMediaType",
+  "artifactType": "$artifactType",
+  "blobs": [
+    {
+      "mediaType": "$signatureMediaType",
+      "digest": "$signatureDigest",
+      "size": $signatureFileSize
+    }
+  ],
+  "subject": {
+      "mediaType": "$manifestMediaType",
+      "digest": "$manifestDigest",
+      "size": $manifestFileSize
+  }
+}
+EOF
+```
+
+### Obtain artifact digest
+
+```shell
+artifactDigest="sha256:$(sha256sum $artifactFile | cut -d " " -f 1)"
+```
+
+### Push signature and artifact
+
+```shell
+# Initiate blob upload and obtain PUT location
+blobPutLocation=`curl -I -X POST -s http://$registry/v2/$repo/blobs/uploads/ | grep "Location: " | sed -e "s/Location: //;s/$/\&digest=$signatureDigest/;s/\r//"`
+
+# Push signature blob
+curl -X PUT -H "Content-Type: application/octet-stream" --data-binary @"$signatureFile" $blobPutLocation
+
+# Push artifact
+curl -X PUT --data-binary @"$artifactFile" -H "Content-Type: $artifactMediaType" "http://$registry/v2/$repo/manifests/$artifactDigest"
+```
+
+### List referrers
+
+```shell
+# Retrieve referrers
+curl -s "http://$registry/oras/artifacts/v1/$repo/manifests/$manifestDigest/referrers?artifactType=$artifactType" | jq
+```
+
+### Verify signature
+
+```shell
+# Retrieve signature
+artifactDigest=`curl -s "http://$registry/oras/artifacts/v1/$repo/manifests/$manifestDigest/referrers?artifactType=$artifactType" | jq -r '.references[0].digest'` && \
+  signatureDigest=`curl -s "http://$registry/oras/artifacts/v1/$repo/manifests/$artifactDigest" | jq -r '.blobs[0].digest'` && \
+  retrievedSignatureFile="retrieved-signature.json" && \
+  curl -s http://$registry/v2/$repo/blobs/$signatureDigest > $retrievedSignatureFile
+
+# Verify signature
+nv2 verify \
+  -f $retrievedSignatureFile \
+  -c example.crt \
+  file:$manifestFile
+```
+
+[distribution-distribution]: https://github.com/distribution/distribution
+[reference-types]: https://github.com/oras-project/artifacts-spec
+[signature]: https://github.com/notaryproject/nv2/tree/prototype-2/docs/nv2

@@ -30,6 +30,7 @@ require (
 	github.com/ncw/swift v1.0.47
 	github.com/opencontainers/go-digest v1.0.0
 	github.com/opencontainers/image-spec v1.0.1
+	github.com/oras-project/artifacts-spec v0.0.0-20210910233110-813953a626ae
 	github.com/satori/go.uuid v1.2.0 // indirect
 	github.com/sirupsen/logrus v1.8.1
 	github.com/spf13/cobra v0.0.3

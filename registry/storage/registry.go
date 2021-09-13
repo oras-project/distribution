@@ -3,12 +3,14 @@ package storage
 import (
 	"context"
 	"regexp"
+	"strings"
 
 	"github.com/distribution/distribution/v3"
 	"github.com/distribution/distribution/v3/reference"
 	"github.com/distribution/distribution/v3/registry/storage/cache"
 	storagedriver "github.com/distribution/distribution/v3/registry/storage/driver"
 	"github.com/docker/libtrust"
+	"github.com/opencontainers/go-digest"
 )
 
 // registry is the top-level implementation of Registry for use in the storage
@@ -266,10 +268,48 @@ func (repo *repository) Manifests(ctx context.Context, options ...distribution.M
 		}
 	}
 
+	referrersStore := func(ctx context.Context, revision digest.Digest, artifactType string) *linkedBlobStore {
+		artifactTypeDigest := ""
+
+		if artifactType != "" {
+			// NOTE (aviral26)
+			// This might cause a problem on Windows file system because of long file paths.
+			// A workaround is to run this server using wsl2.
+			artifactTypeDigest = strings.Split(digest.FromString(artifactType).String(), ":")[1]
+		}
+
+		return &linkedBlobStore{
+			blobStore:  repo.blobStore,
+			repository: repo,
+			ctx:        ctx,
+			linkPathFns: []linkPathFunc{
+				func(name string, referrerRevision digest.Digest) (string, error) {
+					return pathFor(referrerRevisionLinkPathSpec{
+						name:             name,
+						revision:         revision,
+						artifactType:     artifactTypeDigest,
+						referrerRevision: referrerRevision,
+					})
+				},
+			},
+			linkDirectoryPathSpec: referrersPathSpec{
+				name:         repo.Named().Name(),
+				revision:     revision,
+				artifactType: artifactTypeDigest,
+			},
+			blobAccessController: &linkedBlobStatter{
+				blobStore:   repo.blobStore,
+				repository:  repo,
+				linkPathFns: []linkPathFunc{manifestRevisionLinkPath},
+			},
+		}
+	}
+
 	ms := &manifestStore{
 		ctx:            ctx,
 		repository:     repo,
 		blobStore:      blobStore,
+		referrersStore: referrersStore,
 		schema1Handler: v1Handler,
 		schema2Handler: &schema2ManifestHandler{
 			ctx:          ctx,
@@ -281,6 +321,12 @@ func (repo *repository) Manifests(ctx context.Context, options ...distribution.M
 			ctx:        ctx,
 			repository: repo,
 			blobStore:  blobStore,
+		},
+		orasArtifactHandler: &orasArtifactManifestHandler{
+			ctx:            ctx,
+			repository:     repo,
+			blobStore:      blobStore,
+			referrersStore: referrersStore,
 		},
 		ocischemaHandler: &ocischemaManifestHandler{
 			ctx:          ctx,

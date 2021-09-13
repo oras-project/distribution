@@ -1,0 +1,31 @@
+# commit to be tagged for new release
+commit = "HEAD"
+
+project_name = "registry"
+github_repo = "oras-project/distribution"
+
+# previous release
+previous = "main"
+
+pre_release = true
+
+preface = """
+The v0.0.1-alpha registry experimental release provides basic support for phase 1 of
+[reference types](phase-1-reference-types). Clients can push and pull manifests
+of media type `application/vnd.cncf.oras.artifact.manifest.v1+json` (ORAS
+Artifact Manifests) and discover existing reference types using the `/referrers`
+[api](referrers-api).
+
+This release includes the following changes pertaining to reference types:
+
+* Adds CRUD operations for ORAS Artifact Manifests
+* Adds support for `GET /referrers` API
+  * In this release candidate, pagination is not implemented
+  * The implementation uses a [reverse index](reverse-index) as an optimization
+
+The release **does not** implement garbage collection of reference types.
+
+[phase-1-reference-types]: https://github.com/oras-project/artifacts-spec/blob/main/scenarios.md#phase-1---reference-types
+[referrers-api]: https://github.com/oras-project/artifacts-spec/blob/main/manifest-referrers-api.md
+[reverse-index]: docs/referrers.md
+"""

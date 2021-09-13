@@ -74,6 +74,8 @@ const (
 // 	manifestRevisionsPathSpec:      <root>/v2/repositories/<name>/_manifests/revisions/
 // 	manifestRevisionPathSpec:      <root>/v2/repositories/<name>/_manifests/revisions/<algorithm>/<hex digest>/
 // 	manifestRevisionLinkPathSpec:  <root>/v2/repositories/<name>/_manifests/revisions/<algorithm>/<hex digest>/link
+//  referrersPathSpec:             <root>/v2/repositories/<name>/_manifests/revisions/<algorithm>/<hex digest>/ref/<artifactType>
+//  referrerRevisionLinkPathSpec:  <root>/v2/repositories/<name>/_manifests/revisions/<algorithm>/<hex digest>/ref/<artifactType>/<algorithm>/<hex digest>/link
 //
 //	Tags:
 //
@@ -193,6 +195,25 @@ func pathFor(spec pathSpec) (string, error) {
 		}
 
 		return path.Join(root, path.Join(components...)), nil
+	case referrersPathSpec:
+		revisionPrefix, err := pathFor(manifestRevisionPathSpec{name: v.name, revision: v.revision})
+		if err != nil {
+			return "", err
+		}
+
+		return path.Join(revisionPrefix, "ref", v.artifactType), nil
+	case referrerRevisionLinkPathSpec:
+		metadataPrefix, err := pathFor(referrersPathSpec{name: v.name, revision: v.revision, artifactType: v.artifactType})
+		if err != nil {
+			return "", err
+		}
+
+		metadataSuffix, err := digestPathComponents(v.referrerRevision, false)
+		if err != nil {
+			return "", err
+		}
+
+		return path.Join(append(append([]string{metadataPrefix}, metadataSuffix...), "link")...), nil
 	case layerLinkPathSpec:
 		components, err := digestPathComponents(v.digest, false)
 		if err != nil {
@@ -318,6 +339,26 @@ type manifestTagIndexPathSpec struct {
 }
 
 func (manifestTagIndexPathSpec) pathSpec() {}
+
+// referrersPathSpec describes the directory path for manifest referrers of type artifactType.
+type referrersPathSpec struct {
+	name         string
+	revision     digest.Digest
+	artifactType string
+}
+
+func (referrersPathSpec) pathSpec() {}
+
+// referrerRevisionLinkPathSpec describes the path components required to look
+// up the referrer revision link of a manifest revision.
+type referrerRevisionLinkPathSpec struct {
+	name             string
+	revision         digest.Digest
+	artifactType     string
+	referrerRevision digest.Digest
+}
+
+func (referrerRevisionLinkPathSpec) pathSpec() {}
 
 // manifestTagIndexEntryPathSpec contains the entries of the index by revision.
 type manifestTagIndexEntryPathSpec struct {
