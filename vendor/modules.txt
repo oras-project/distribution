@@ -149,6 +149,9 @@ github.com/opencontainers/go-digest
 ## explicit
 github.com/opencontainers/image-spec/specs-go
 github.com/opencontainers/image-spec/specs-go/v1
+# github.com/oras-project/artifacts-spec v1.0.0-draft.1
+## explicit
+github.com/oras-project/artifacts-spec/specs-go/v1
 # github.com/prometheus/client_golang v1.1.0
 github.com/prometheus/client_golang/prometheus
 github.com/prometheus/client_golang/prometheus/internal

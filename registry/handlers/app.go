@@ -277,6 +277,11 @@ func NewApp(ctx context.Context, config *configuration.Configuration) *App {
 		panic(err)
 	}
 
+	// add the extended storage for every namespace to the new registry options
+	for _, ns := range app.extensionNamespaces {
+		options = append(options, storage.AddExtendedStorage(ns))
+	}
+
 	// configure storage caches
 	if cc, ok := config.Storage["cache"]; ok {
 		v, ok := cc["blobdescriptor"]

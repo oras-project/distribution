@@ -15,6 +15,14 @@ type ReadOnlyBlobStore interface {
 	distribution.BlobProvider
 }
 
+// ExtendedStorage defines extensions to store operations like manifest for example.
+type ExtendedStorage interface {
+	// GetManifestHandlers returns the list of manifest handlers that handle custom manifest formats supported by the extensions.
+	GetManifestHandlers(
+		repo distribution.Repository,
+		blobStore distribution.BlobStore) []ManifestHandler
+}
+
 // GetManifestLinkReadOnlyBlobStore will enable extensions to access the underlying linked blob store for readonly operations.
 // This blob store is scoped only to manifest link paths. Manifest link paths doesn't use blob cache
 func GetManifestLinkReadOnlyBlobStore(
