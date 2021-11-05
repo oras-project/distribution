@@ -4,9 +4,11 @@ import (
 	"context"
 	"net/http"
 
+	"github.com/distribution/distribution/v3"
 	"github.com/distribution/distribution/v3/configuration"
 	v2 "github.com/distribution/distribution/v3/registry/api/v2"
 	"github.com/distribution/distribution/v3/registry/extension"
+	"github.com/distribution/distribution/v3/registry/storage"
 	"github.com/distribution/distribution/v3/registry/storage/driver"
 	"github.com/gorilla/handlers"
 	"gopkg.in/yaml.v2"
@@ -64,6 +66,12 @@ func newDistNamespace(ctx context.Context, storageDriver driver.StorageDriver, o
 func init() {
 	// register the extension namespace.
 	extension.Register(namespaceName, newDistNamespace)
+}
+
+// GetManifestHandlers returns a list of manifest handlers that will be registered in the manifest store.
+func (o *distributionNamespace) GetManifestHandlers(repo distribution.Repository, blobStore distribution.BlobStore) []storage.ManifestHandler {
+	// This extension doesn't extend any manifest store operations.
+	return []storage.ManifestHandler{}
 }
 
 // GetRepositoryRoutes returns a list of extension routes scoped at a repository level

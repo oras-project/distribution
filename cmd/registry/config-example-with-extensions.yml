@@ -32,3 +32,9 @@ extensions:
       # "taghistory" & "manifests" are the components under the extension
       - taghistory
       - manifests
+  # "oras" is the namespace
+  oras:
+    # "artifacts" is the extension under the namespace
+    artifacts:
+      # "referrers" is the component name.
+      - referrers
