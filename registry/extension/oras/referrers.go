@@ -46,6 +46,7 @@ func (h *referrersHandler) getReferrers(w http.ResponseWriter, r *http.Request) 
 	}
 
 	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("ORAS-Api-Version", "oras/1.0")
 	enc := json.NewEncoder(w)
 	if err = enc.Encode(response); err != nil {
 		h.extContext.Errors = append(h.extContext.Errors, errcode.ErrorCodeUnknown.WithDetail(err))
