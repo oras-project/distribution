@@ -57,23 +57,24 @@ type InitExtensionNamespace func(ctx c.Context, storageDriver driver.StorageDriv
 
 var extensions map[string]InitExtensionNamespace
 
-func EnumerateRegistered() []v2.RouteDescriptor {
-	descs := make([]v2.RouteDescriptor, 0)
+func EnumerateRegistered(ctx context.Context) (repositoryRoutes []v2.RouteDescriptor, registryRoutes []v2.RouteDescriptor) {
 	for _, ext := range extensions {
-		namespace, err := ext(context.TODO(), nil, nil)
+		// TODO: It's probably okay to pass a nil storage driver, but should probably figure out where the extension config is stored and pass that here
+		namespace, err := ext(ctx, nil, nil)
 		if err != nil {
 			registryScoped := namespace.GetRegistryRoutes()
 			for _, regScoped := range registryScoped {
-				descs = append(descs, regScoped.Descriptor)
+				registryRoutes = append(registryRoutes, regScoped.Descriptor)
 			}
 
 			repositoryScoped := namespace.GetRepositoryRoutes()
 			for _, repScoped := range repositoryScoped {
-				descs = append(descs, repScoped.Descriptor)
+				repositoryRoutes = append(repositoryRoutes, repScoped.Descriptor)
 			}
 		}
 	}
-	return descs
+
+	return repositoryRoutes, registryRoutes
 }
 
 // Register is used to register an InitExtensionNamespace for

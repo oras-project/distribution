@@ -31,10 +31,11 @@ func (th *extensionHandler) getExtensions(w http.ResponseWriter, r *http.Request
 
 	w.Header().Set("Content-Type", "application/json")
 
-	registered := extension.EnumerateRegistered()
+	// TODO: currently this is only handling repository_routes
+	repository_routes, _ := extension.EnumerateRegistered(r.Context())
 
-	extensions := make([]ociExtension, len(registered))
-	for _, e := range registered {
+	extensions := make([]ociExtension, len(repository_routes))
+	for _, e := range repository_routes {
 		extensions = append(extensions, ociExtension{Name: e.Name, Description: e.Description, Url: e.Path})
 	}
 

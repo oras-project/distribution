@@ -31,7 +31,6 @@ type distributionOptions struct {
 
 // newOciNamespace creates a new extension namespace with the name "oci"
 func newOciNamespace(ctx context.Context, storageDriver driver.StorageDriver, options configuration.ExtensionConfig) (extension.Namespace, error) {
-
 	optionsYaml, err := yaml.Marshal(options)
 	if err != nil {
 		return nil, err
