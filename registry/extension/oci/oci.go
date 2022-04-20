@@ -18,14 +18,16 @@ const (
 	namespaceName         = "oci"
 	extensionName         = "ext"
 	discoverComponentName = "discover"
+	namespaceUrl          = "https://github.com/opencontainers/distribution-spec/blob/main/extensions/_oci.md"
+	namespaceDescription  = "oci extension enables listing of supported registry and repository extensions"
 )
 
-type distributionNamespace struct {
+type ociNamespace struct {
 	storageDriver   driver.StorageDriver
 	discoverEnabled bool
 }
 
-type distributionOptions struct {
+type ociOptions struct {
 	RegExtensionComponents []string `yaml:"ext,omitempty"`
 }
 
@@ -36,21 +38,21 @@ func newOciNamespace(ctx context.Context, storageDriver driver.StorageDriver, op
 		return nil, err
 	}
 
-	var distOptions distributionOptions
-	err = yaml.Unmarshal(optionsYaml, &distOptions)
+	var ociOption ociOptions
+	err = yaml.Unmarshal(optionsYaml, &ociOption)
 	if err != nil {
 		return nil, err
 	}
 
 	discoverEnabled := false
-	for _, component := range distOptions.RegExtensionComponents {
+	for _, component := range ociOption.RegExtensionComponents {
 		switch component {
 		case "discover":
 			discoverEnabled = true
 		}
 	}
 
-	return &distributionNamespace{
+	return &ociNamespace{
 		storageDriver:   storageDriver,
 		discoverEnabled: discoverEnabled,
 	}, nil
@@ -62,13 +64,13 @@ func init() {
 }
 
 // GetManifestHandlers returns a list of manifest handlers that will be registered in the manifest store.
-func (o *distributionNamespace) GetManifestHandlers(repo distribution.Repository, blobStore distribution.BlobStore) []storage.ManifestHandler {
+func (o *ociNamespace) GetManifestHandlers(repo distribution.Repository, blobStore distribution.BlobStore) []storage.ManifestHandler {
 	// This extension doesn't extend any manifest store operations.
 	return []storage.ManifestHandler{}
 }
 
 // GetRepositoryRoutes returns a list of extension routes scoped at a repository level
-func (d *distributionNamespace) GetRepositoryRoutes() []extension.Route {
+func (d *ociNamespace) GetRepositoryRoutes() []extension.Route {
 	var routes []extension.Route
 
 	if d.discoverEnabled {
@@ -94,11 +96,26 @@ func (d *distributionNamespace) GetRepositoryRoutes() []extension.Route {
 
 // GetRegistryRoutes returns a list of extension routes scoped at a registry level
 // There are no registry scoped routes exposed by this namespace
-func (d *distributionNamespace) GetRegistryRoutes() []extension.Route {
+func (d *ociNamespace) GetRegistryRoutes() []extension.Route {
 	return nil
 }
 
-func (d *distributionNamespace) discoverDispatcher(ctx *extension.Context, r *http.Request) http.Handler {
+// GetNamespaceName returns the name associated with the namespace
+func (d *ociNamespace) GetNamespaceName() string {
+	return namespaceName
+}
+
+// GetNamespaceUrl returns the url link to the documentation where the namespace's extension and endpoints are defined
+func (d *ociNamespace) GetNamespaceUrl() string {
+	return namespaceUrl
+}
+
+// GetNamespaceDescription returns the description associated with the namespace
+func (d *ociNamespace) GetNamespaceDescription() string {
+	return namespaceDescription
+}
+
+func (d *ociNamespace) discoverDispatcher(ctx *extension.Context, r *http.Request) http.Handler {
 	extensionHandler := &extensionHandler{
 		Context:       ctx,
 		storageDriver: d.storageDriver,

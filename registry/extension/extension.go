@@ -50,31 +50,52 @@ type Namespace interface {
 	GetRepositoryRoutes() []Route
 	// GetRegistryRoutes returns a list of extension routes scoped at a registry level
 	GetRegistryRoutes() []Route
+	// GetNamespaceName returns the name associated with the namespace
+	GetNamespaceName() string
+	// GetNamespaceUrl returns the url link to the documentation where the namespace's extension and endpoints are defined
+	GetNamespaceUrl() string
+	// GetNamespaceDescription returns the description associated with the namespace
+	GetNamespaceDescription() string
 }
 
 // InitExtensionNamespace is the initialize function for creating the extension namespace
 type InitExtensionNamespace func(ctx c.Context, storageDriver driver.StorageDriver, options configuration.ExtensionConfig) (Namespace, error)
 
+// EnumerateExtension specifies extension information at the namespace level
+type EnumerateExtension struct {
+	Name        string   `json:"name"`
+	Url         string   `json:"url"`
+	Description string   `json:"description,omitempty"`
+	Endpoints   []string `json:"endpoints"`
+}
+
 var extensions map[string]InitExtensionNamespace
+var extensionsNamespaces map[string]Namespace
 
-func EnumerateRegistered(ctx context.Context) (repositoryRoutes []v2.RouteDescriptor, registryRoutes []v2.RouteDescriptor) {
-	for _, ext := range extensions {
-		// TODO: It's probably okay to pass a nil storage driver, but should probably figure out where the extension config is stored and pass that here
-		namespace, err := ext(ctx, nil, nil)
-		if err != nil {
-			registryScoped := namespace.GetRegistryRoutes()
-			for _, regScoped := range registryScoped {
-				registryRoutes = append(registryRoutes, regScoped.Descriptor)
-			}
-
-			repositoryScoped := namespace.GetRepositoryRoutes()
-			for _, repScoped := range repositoryScoped {
-				repositoryRoutes = append(repositoryRoutes, repScoped.Descriptor)
-			}
+func EnumerateRegistered(ctx context.Context) (enumeratedExtensions []EnumerateExtension) {
+	for _, namespace := range extensionsNamespaces {
+		enumerateExtension := EnumerateExtension{
+			Name:        namespace.GetNamespaceName(),
+			Url:         namespace.GetNamespaceUrl(),
+			Description: namespace.GetNamespaceDescription(),
 		}
+
+		registryScoped := namespace.GetRegistryRoutes()
+		for _, regScoped := range registryScoped {
+			path := fmt.Sprintf("_%s/%s/%s", regScoped.Namespace, regScoped.Extension, regScoped.Component)
+			enumerateExtension.Endpoints = append(enumerateExtension.Endpoints, path)
+		}
+
+		repositoryScoped := namespace.GetRepositoryRoutes()
+		for _, repScoped := range repositoryScoped {
+			path := fmt.Sprintf("_%s/%s/%s", repScoped.Namespace, repScoped.Extension, repScoped.Component)
+			enumerateExtension.Endpoints = append(enumerateExtension.Endpoints, path)
+		}
+
+		enumeratedExtensions = append(enumeratedExtensions, enumerateExtension)
 	}
 
-	return repositoryRoutes, registryRoutes
+	return enumeratedExtensions
 }
 
 // Register is used to register an InitExtensionNamespace for
@@ -94,8 +115,17 @@ func Register(name string, initFunc InitExtensionNamespace) {
 // Get constructs an extension namespace with the given options using the given name.
 func Get(ctx c.Context, name string, storageDriver driver.StorageDriver, options configuration.ExtensionConfig) (Namespace, error) {
 	if extensions != nil {
+		if extensionsNamespaces == nil {
+			extensionsNamespaces = make(map[string]Namespace)
+		}
+
 		if initFunc, exists := extensions[name]; exists {
-			return initFunc(ctx, storageDriver, options)
+			namespace, err := initFunc(ctx, storageDriver, options)
+			if err == nil {
+				// adds the initialized namespace to map for simple access to namespaces by EnumerateRegistered
+				extensionsNamespaces[name] = namespace
+			}
+			return namespace, err
 		}
 	}
 

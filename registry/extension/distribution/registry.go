@@ -19,6 +19,8 @@ const (
 	extensionName           = "registry"
 	manifestsComponentName  = "manifests"
 	tagHistoryComponentName = "taghistory"
+	namespaceUrl            = "insert link"
+	namespaceDescription    = "distribution extension adds tag history and manifest list functionality"
 )
 
 type distributionNamespace struct {
@@ -132,6 +134,21 @@ func (d *distributionNamespace) GetRepositoryRoutes() []extension.Route {
 // There are no registry scoped routes exposed by this namespace
 func (d *distributionNamespace) GetRegistryRoutes() []extension.Route {
 	return nil
+}
+
+// GetNamespaceName returns the name associated with the namespace
+func (d *distributionNamespace) GetNamespaceName() string {
+	return namespaceName
+}
+
+// GetNamespaceUrl returns the url link to the documentation where the namespace's extension and endpoints are defined
+func (d *distributionNamespace) GetNamespaceUrl() string {
+	return namespaceUrl
+}
+
+// GetNamespaceDescription returns the description associated with the namespace
+func (d *distributionNamespace) GetNamespaceDescription() string {
+	return namespaceDescription
 }
 
 func (d *distributionNamespace) tagHistoryDispatcher(ctx *extension.Context, r *http.Request) http.Handler {

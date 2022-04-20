@@ -9,15 +9,9 @@ import (
 	"github.com/distribution/distribution/v3/registry/storage/driver"
 )
 
-type ociExtension struct {
-	Name        string `json:"name"`
-	Description string `json:"description"`
-	Url         string `json:"url"`
-}
-
 type discoverGetAPIResponse struct {
-	Name       string         `json:"name"`
-	Extensions []ociExtension `json:"extensions"`
+	Name       string                         `json:"name"`
+	Extensions []extension.EnumerateExtension `json:"extensions"`
 }
 
 // extensionHandler handles requests for manifests under a manifest name.
@@ -31,18 +25,20 @@ func (th *extensionHandler) getExtensions(w http.ResponseWriter, r *http.Request
 
 	w.Header().Set("Content-Type", "application/json")
 
-	// TODO: currently this is only handling repository_routes
-	repository_routes, _ := extension.EnumerateRegistered(r.Context())
+	// get list of extension information seperated at the namespace level
+	enumeratedExtensions := extension.EnumerateRegistered(r.Context())
 
-	extensions := make([]ociExtension, len(repository_routes))
-	for _, e := range repository_routes {
-		extensions = append(extensions, ociExtension{Name: e.Name, Description: e.Description, Url: e.Path})
+	// remove the oci extension so it's not returned by discover
+	for i, e := range enumeratedExtensions {
+		if e.Name == namespaceName {
+			enumeratedExtensions = append(enumeratedExtensions[:i], enumeratedExtensions[i+1:]...)
+		}
 	}
 
 	enc := json.NewEncoder(w)
 	if err := enc.Encode(discoverGetAPIResponse{
 		Name:       th.Repository.Named().Name(),
-		Extensions: extensions,
+		Extensions: enumeratedExtensions,
 	}); err != nil {
 		th.Errors = append(th.Errors, errcode.ErrorCodeUnknown.WithDetail(err))
 		return

@@ -11,10 +11,6 @@ http:
   addr: :5000
   headers:
     X-Content-Type-Options: [nosniff]
-# auth:
-#   htpasswd:
-#     realm: basic-realm
-#     path: /home/sajay/code/src/github.com/mnltejaswini/distribution/data/passwords
 health:
   storagedriver:
     enabled: true
