@@ -6,15 +6,11 @@ storage:
   cache:
     blobdescriptor: inmemory
   filesystem:
-    rootdirectory: /var/lib/registry
+    rootdirectory: /opt/data/registry-root-dir
 http:
   addr: :5000
   headers:
     X-Content-Type-Options: [nosniff]
-auth:
-  htpasswd:
-    realm: basic-realm
-    path: /etc/registry
 health:
   storagedriver:
     enabled: true
@@ -25,6 +21,9 @@ health:
 #   namespace:
 #     configuration for the extension and its components in any schema specific to that namespace
 extensions:
+  oci: 
+    ext:
+      - discover # enable the discovery extension
   # "distribution" is the namespace
   distribution:
     # "registry" is the extension under the namespace

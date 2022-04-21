@@ -20,6 +20,8 @@ const (
 	namespaceName          = "oras"
 	extensionName          = "artifacts"
 	referrersComponentName = "referrers"
+	namespaceUrl           = "https://github.com/oras-project/artifacts-spec/blob/main/manifest-referrers-api.md"
+	namespaceDescription   = "oras extension enables listing of all reference artifacts associated with subject"
 )
 
 type orasNamespace struct {
@@ -105,6 +107,21 @@ func (d *orasNamespace) GetRepositoryRoutes() []extension.Route {
 // There are no registry scoped routes exposed by this namespace
 func (d *orasNamespace) GetRegistryRoutes() []extension.Route {
 	return nil
+}
+
+// GetNamespaceName returns the name associated with the namespace
+func (d *orasNamespace) GetNamespaceName() string {
+	return namespaceName
+}
+
+// GetNamespaceUrl returns the url link to the documentation where the namespace's extension and endpoints are defined
+func (d *orasNamespace) GetNamespaceUrl() string {
+	return namespaceUrl
+}
+
+// GetNamespaceDescription returns the description associated with the namespace
+func (d *orasNamespace) GetNamespaceDescription() string {
+	return namespaceDescription
 }
 
 func (o *orasNamespace) referrersDispatcher(extCtx *extension.Context, r *http.Request) http.Handler {
