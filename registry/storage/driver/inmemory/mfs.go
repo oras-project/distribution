@@ -290,10 +290,20 @@ func (f *file) ReadAt(p []byte, offset int64) (n int, err error) {
 	return copy(p, f.data[offset:]), nil
 }
 
+// reallocExponent is the exponent used to realloc a slice. The value roughly
+// follows the behavior of Go built-in append function.
+const reallocExponent = 1.25
+
 func (f *file) WriteAt(p []byte, offset int64) (n int, err error) {
 	off := int(offset)
 	if cap(f.data) < off+len(p) {
-		data := make([]byte, len(f.data), off+len(p))
+		// Grow slice exponentially to ensure amortized linear time complexity
+		// of reallocation
+		newCap := int(float64(off+len(p)) * reallocExponent)
+		if newCap < off+len(p) {
+			newCap = off + len(p)
+		}
+		data := make([]byte, len(f.data), newCap)
 		copy(data, f.data)
 		f.data = data
 	}
