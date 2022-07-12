@@ -119,7 +119,7 @@ func TestVerifyArtifactManifestPut(t *testing.T) {
 			Blobs: []orasartifacts.Descriptor{
 				artifactBlobDescriptor,
 			},
-			Subject: orasartifacts.Descriptor{
+			Subject: &orasartifacts.Descriptor{
 				MediaType: dm.MediaType,
 				Size:      int64(len(dmPayload)),
 				Digest:    dg,
@@ -134,7 +134,7 @@ func TestVerifyArtifactManifestPut(t *testing.T) {
 		MediaType    string
 		ArtifactType string
 		Blobs        []orasartifacts.Descriptor
-		Subject      orasartifacts.Descriptor
+		Subject      *orasartifacts.Descriptor
 		Annotations  map[string]string
 		Err          error
 	}
@@ -171,7 +171,7 @@ func TestVerifyArtifactManifestPut(t *testing.T) {
 			orasartifacts.MediaTypeArtifactManifest,
 			template.inner.ArtifactType,
 			template.inner.Blobs,
-			orasartifacts.Descriptor{
+			&orasartifacts.Descriptor{
 				MediaType: dm.MediaType,
 				Size:      int64(len(dmPayload)),
 				Digest:    digest.FromString("sha256:invalid"),

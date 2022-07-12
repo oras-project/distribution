@@ -1464,7 +1464,7 @@ func TestReferrers(t *testing.T) {
 		Blobs: []orasartifacts.Descriptor{
 			artifactBlobDescriptor,
 		},
-		Subject: orasartifacts.Descriptor{
+		Subject: &orasartifacts.Descriptor{
 			MediaType: schema2.MediaTypeManifest,
 			Size:      int64(len(p)),
 			Digest:    dgst,

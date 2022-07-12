@@ -65,11 +65,12 @@ func (ah *artifactManifestHandler) Put(ctx context.Context, man distribution.Man
 		dcontext.GetLogger(ctx).Errorf("error putting payload into blobstore: %v", err)
 		return "", err
 	}
-
-	err = ah.indexReferrers(ctx, *da, revision.Digest)
-	if err != nil {
-		dcontext.GetLogger(ctx).Errorf("error indexing referrers: %v", err)
-		return "", err
+	if da.Subject() != nil {
+		err = ah.indexReferrers(ctx, *da, revision.Digest)
+		if err != nil {
+			dcontext.GetLogger(ctx).Errorf("error indexing referrers: %v", err)
+			return "", err
+		}
 	}
 
 	return revision.Digest, nil
@@ -119,11 +120,13 @@ func (amh *artifactManifestHandler) verifyManifest(ctx context.Context, dm Deser
 
 		// Validate subject manifest.
 		subject := dm.Subject()
-		exists, err := ms.Exists(ctx, subject.Digest)
-		if !exists || err == distribution.ErrBlobUnknown {
-			errs = append(errs, distribution.ErrManifestBlobUnknown{Digest: subject.Digest})
-		} else if err != nil {
-			errs = append(errs, err)
+		if subject != nil {
+			exists, err := ms.Exists(ctx, subject.Digest)
+			if !exists || err == distribution.ErrBlobUnknown {
+				errs = append(errs, distribution.ErrManifestBlobUnknown{Digest: subject.Digest})
+			} else if err != nil {
+				errs = append(errs, err)
+			}
 		}
 	}
 

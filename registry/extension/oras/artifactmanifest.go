@@ -61,12 +61,15 @@ func (a Manifest) References() []distribution.Descriptor {
 }
 
 // Subject returns the the subject manifest this artifact references.
-func (a Manifest) Subject() distribution.Descriptor {
-	return distribution.Descriptor{
-		MediaType: a.inner.Subject.MediaType,
-		Digest:    a.inner.Subject.Digest,
-		Size:      a.inner.Subject.Size,
+func (a Manifest) Subject() *distribution.Descriptor {
+	if a.inner.Subject != nil {
+		return &distribution.Descriptor{
+			MediaType: a.inner.Subject.MediaType,
+			Digest:    a.inner.Subject.Digest,
+			Size:      a.inner.Subject.Size,
+		}
 	}
+	return nil
 }
 
 // DeserializedManifest wraps Manifest with a copy of the original JSON data.
