@@ -39,8 +39,8 @@ var expectedManifestSerialization = []byte(`{
    }
 }`)
 
-func makeTestManifest(mediaType string) Manifest {
-	return Manifest{
+func makeTestImageManifest(mediaType string) ImageManifest {
+	return ImageManifest{
 		Versioned: manifest.Versioned{
 			SchemaVersion: 2,
 			MediaType:     mediaType,
@@ -63,10 +63,10 @@ func makeTestManifest(mediaType string) Manifest {
 	}
 }
 
-func TestManifest(t *testing.T) {
-	manifest := makeTestManifest(v1.MediaTypeImageManifest)
+func TestImageManifest(t *testing.T) {
+	imageManifest := makeTestImageManifest(v1.MediaTypeImageManifest)
 
-	deserialized, err := FromStruct(manifest)
+	deserialized, err := ImageManifestFromStruct(imageManifest)
 	if err != nil {
 		t.Fatalf("error creating DeserializedManifest: %v", err)
 	}
@@ -79,7 +79,7 @@ func TestManifest(t *testing.T) {
 
 	// Check that the canonical field is the same as json.MarshalIndent
 	// with these parameters.
-	p, err := json.MarshalIndent(&manifest, "", "   ")
+	p, err := json.MarshalIndent(&imageManifest, "", "   ")
 	if err != nil {
 		t.Fatalf("error marshaling manifest: %v", err)
 	}
@@ -92,7 +92,7 @@ func TestManifest(t *testing.T) {
 		t.Fatalf("manifest bytes not equal: %q != %q", string(canonical), string(expectedManifestSerialization))
 	}
 
-	var unmarshalled DeserializedManifest
+	var unmarshalled DeserializedImageManifest
 	if err := json.Unmarshal(deserialized.canonical, &unmarshalled); err != nil {
 		t.Fatalf("error unmarshaling manifest: %v", err)
 	}
@@ -143,9 +143,9 @@ func TestManifest(t *testing.T) {
 }
 
 func mediaTypeTest(t *testing.T, mediaType string, shouldError bool) {
-	manifest := makeTestManifest(mediaType)
+	manifest := makeTestImageManifest(mediaType)
 
-	deserialized, err := FromStruct(manifest)
+	deserialized, err := ImageManifestFromStruct(manifest)
 	if err != nil {
 		t.Fatalf("error creating DeserializedManifest: %v", err)
 	}
@@ -163,7 +163,7 @@ func mediaTypeTest(t *testing.T, mediaType string, shouldError bool) {
 			t.Fatalf("error unmarshaling manifest, %v", err)
 		}
 
-		asManifest := unmarshalled.(*DeserializedManifest)
+		asManifest := unmarshalled.(*DeserializedImageManifest)
 		if asManifest.MediaType != mediaType {
 			t.Fatalf("Bad media type '%v' as unmarshalled", asManifest.MediaType)
 		}
@@ -186,7 +186,7 @@ func TestMediaTypes(t *testing.T) {
 }
 
 func TestValidateManifest(t *testing.T) {
-	manifest := Manifest{
+	manifest := ImageManifest{
 		Config: distribution.Descriptor{Size: 1},
 		Layers: []distribution.Descriptor{{Size: 2}},
 	}

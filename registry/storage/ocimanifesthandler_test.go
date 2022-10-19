@@ -48,7 +48,7 @@ func TestVerifyOCIManifestNonDistributableLayer(t *testing.T) {
 		MediaType: v1.MediaTypeImageLayerGzip,
 	}
 
-	template := ocischema.Manifest{
+	template := ocischema.ImageManifest{
 		Versioned: manifest.Versioned{
 			SchemaVersion: 2,
 			MediaType:     v1.MediaTypeImageManifest,
@@ -145,7 +145,7 @@ func TestVerifyOCIManifestNonDistributableLayer(t *testing.T) {
 		l := c.BaseLayer
 		l.URLs = c.URLs
 		m.Layers = []distribution.Descriptor{l}
-		dm, err := ocischema.FromStruct(m)
+		dm, err := ocischema.ImageManifestFromStruct(m)
 		if err != nil {
 			t.Error(err)
 			continue
@@ -188,15 +188,15 @@ func TestVerifyOCIManifestBlobLayerAndConfig(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	template := ocischema.Manifest{
+	template := ocischema.ImageManifest{
 		Versioned: manifest.Versioned{
 			SchemaVersion: 2,
 			MediaType:     v1.MediaTypeImageManifest,
 		},
 	}
 
-	checkFn := func(m ocischema.Manifest, rerr error) {
-		dm, err := ocischema.FromStruct(m)
+	checkFn := func(m ocischema.ImageManifest, rerr error) {
+		dm, err := ocischema.ImageManifestFromStruct(m)
 		if err != nil {
 			t.Error(err)
 			return

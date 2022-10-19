@@ -12,7 +12,7 @@ import (
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 )
 
-//ocischemaManifestHandler is a ManifestHandler that covers ocischema manifests.
+// ocischemaManifestHandler is a ManifestHandler that covers ocischema manifests.
 type ocischemaManifestHandler struct {
 	repository   distribution.Repository
 	blobStore    distribution.BlobStore
@@ -25,7 +25,7 @@ var _ ManifestHandler = &ocischemaManifestHandler{}
 func (ms *ocischemaManifestHandler) Unmarshal(ctx context.Context, dgst digest.Digest, content []byte) (distribution.Manifest, error) {
 	dcontext.GetLogger(ms.ctx).Debug("(*ocischemaManifestHandler).Unmarshal")
 
-	m := &ocischema.DeserializedManifest{}
+	m := &ocischema.DeserializedImageManifest{}
 	if err := m.UnmarshalJSON(content); err != nil {
 		return nil, err
 	}
@@ -36,7 +36,7 @@ func (ms *ocischemaManifestHandler) Unmarshal(ctx context.Context, dgst digest.D
 func (ms *ocischemaManifestHandler) Put(ctx context.Context, manifest distribution.Manifest, skipDependencyVerification bool) (digest.Digest, error) {
 	dcontext.GetLogger(ms.ctx).Debug("(*ocischemaManifestHandler).Put")
 
-	m, ok := manifest.(*ocischema.DeserializedManifest)
+	m, ok := manifest.(*ocischema.DeserializedImageManifest)
 	if !ok {
 		return "", fmt.Errorf("non-ocischema manifest put to ocischemaManifestHandler: %T", manifest)
 	}
@@ -62,11 +62,11 @@ func (ms *ocischemaManifestHandler) Put(ctx context.Context, manifest distributi
 // verifyManifest ensures that the manifest content is valid from the
 // perspective of the registry. As a policy, the registry only tries to store
 // valid content, leaving trust policies of that content up to consumers.
-func (ms *ocischemaManifestHandler) verifyManifest(ctx context.Context, mnfst ocischema.DeserializedManifest, skipDependencyVerification bool) error {
+func (ms *ocischemaManifestHandler) verifyManifest(ctx context.Context, mnfst ocischema.DeserializedImageManifest, skipDependencyVerification bool) error {
 	var errs distribution.ErrManifestVerification
 
-	if mnfst.Manifest.SchemaVersion != 2 {
-		return fmt.Errorf("unrecognized manifest schema version %d", mnfst.Manifest.SchemaVersion)
+	if mnfst.ImageManifest.SchemaVersion != 2 {
+		return fmt.Errorf("unrecognized manifest schema version %d", mnfst.ImageManifest.SchemaVersion)
 	}
 
 	if skipDependencyVerification {

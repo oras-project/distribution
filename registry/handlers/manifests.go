@@ -30,6 +30,7 @@ const (
 	defaultOS           = "linux"
 	maxManifestBodySize = 4 << 20
 	imageClass          = "image"
+	artifactClass       = "artifact"
 )
 
 type storageType int
@@ -154,15 +155,17 @@ func (imh *manifestHandler) GetManifest(w http.ResponseWriter, r *http.Request) 
 		}
 		return
 	}
+	// TODO: refactor this part with switch
 	// determine the type of the returned manifest
 	manifestType := manifestSchema1
 	schema2Manifest, isSchema2 := manifest.(*schema2.DeserializedManifest)
 	manifestList, isManifestList := manifest.(*manifestlist.DeserializedManifestList)
 	if isSchema2 {
 		manifestType = manifestSchema2
-	} else if _, isOCIImageManifest := manifest.(*ocischema.DeserializedManifest); isOCIImageManifest {
+	} else if _, isOCIImageManifest := manifest.(*ocischema.DeserializedImageManifest); isOCIImageManifest {
 		manifestType = ociImageSchema
-		// TODO: else if isOCIArtifactManifest { need to implement artifact type assertion }
+	} else if _, isOCIArtifactManifest := manifest.(*ocischema.DeserializedArtifactManifest); isOCIArtifactManifest {
+		manifestType = ociArtifactSchema
 	} else if isManifestList {
 		if manifestList.MediaType == manifestlist.MediaTypeManifestList {
 			manifestType = manifestlistSchema
@@ -331,8 +334,13 @@ func (imh *manifestHandler) PutManifest(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	// TODO: Should I add artifact manifest here? If so, refactor with switch
-	isAnOCIManifest := mediaType == v1.MediaTypeImageManifest || mediaType == v1.MediaTypeImageIndex
+	var isAnOCIManifest bool
+	switch mediaType {
+	case v1.MediaTypeImageManifest, v1.MediaTypeArtifactManifest, v1.MediaTypeImageIndex:
+		isAnOCIManifest = true
+	default:
+		isAnOCIManifest = false
+	}
 
 	if isAnOCIManifest {
 		dcontext.GetLogger(imh).Debug("Putting an OCI Manifest!")
@@ -442,12 +450,19 @@ func (imh *manifestHandler) applyResourcePolicy(manifest distribution.Manifest) 
 		default:
 			return errcode.ErrorCodeDenied.WithMessage("unknown manifest class for " + m.Config.MediaType)
 		}
-	case *ocischema.DeserializedManifest:
+	case *ocischema.DeserializedImageManifest:
 		switch m.Config.MediaType {
 		case v1.MediaTypeImageConfig:
 			class = imageClass
 		default:
 			return errcode.ErrorCodeDenied.WithMessage("unknown manifest class for " + m.Config.MediaType)
+		}
+	case *ocischema.DeserializedArtifactManifest:
+		switch m.MediaType {
+		case v1.MediaTypeArtifactManifest:
+			class = artifactClass
+		default:
+			return errcode.ErrorCodeDenied.WithMessage("unknown manifest class for " + m.MediaType)
 		}
 	}
 
@@ -494,7 +509,7 @@ func (imh *manifestHandler) applyResourcePolicy(manifest distribution.Manifest) 
 
 // DeleteManifest removes the manifest with the given digest or the tag with the given name from the registry.
 func (imh *manifestHandler) DeleteManifest(w http.ResponseWriter, r *http.Request) {
-	dcontext.GetLogger(imh).Debug("DeleteImageManifest")
+	dcontext.GetLogger(imh).Debug("DeleteManifest")
 
 	if imh.App.isCache {
 		imh.Errors = append(imh.Errors, errcode.ErrorCodeUnsupported)
