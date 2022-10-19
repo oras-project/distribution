@@ -21,8 +21,8 @@ var (
 )
 
 func init() {
-	ocischemaFunc := func(b []byte) (distribution.Manifest, distribution.Descriptor, error) {
-		if err := validateManifest(b); err != nil {
+	imageFunc := func(b []byte) (distribution.Manifest, distribution.Descriptor, error) {
+		if err := validateImageManifest(b); err != nil {
 			return nil, distribution.Descriptor{}, err
 		}
 		im := new(DeserializedImageManifest)
@@ -34,7 +34,7 @@ func init() {
 		dgst := digest.FromBytes(b)
 		return im, distribution.Descriptor{Digest: dgst, Size: int64(len(b)), MediaType: v1.MediaTypeImageManifest}, err
 	}
-	err := distribution.RegisterManifestSchema(v1.MediaTypeImageManifest, ocischemaFunc)
+	err := distribution.RegisterManifestSchema(v1.MediaTypeImageManifest, imageFunc)
 	if err != nil {
 		panic(fmt.Sprintf("Unable to register image manifest: %s", err))
 	}
@@ -117,7 +117,7 @@ func (im *DeserializedImageManifest) MarshalJSON() ([]byte, error) {
 		return im.canonical, nil
 	}
 
-	return nil, errors.New("JSON representation not initialized in DeserializedManifest")
+	return nil, errors.New("JSON representation not initialized in DeserializedImageManifest")
 }
 
 // Payload returns the raw content of the image manifest. The contents can be used to
@@ -126,21 +126,18 @@ func (im DeserializedImageManifest) Payload() (string, []byte, error) {
 	return v1.MediaTypeImageManifest, im.canonical, nil
 }
 
-// unknownDocument represents a manifest, manifest list, or index that has not
-// yet been validated
-type unknownDocument struct {
-	Manifests interface{} `json:"manifests,omitempty"`
-}
-
-// validateManifest returns an error if the byte slice is invalid JSON or if it
-// contains fields that belong to a index
-func validateManifest(b []byte) error {
+// validateImageManifest returns an error if the byte slice is invalid JSON or if it
+// contains fields that belong to an index or an artifact manifest
+func validateImageManifest(b []byte) error {
 	var doc unknownDocument
 	if err := json.Unmarshal(b, &doc); err != nil {
 		return err
 	}
+	if doc.MediaType == v1.MediaTypeArtifactManifest && doc.Config == nil {
+		return errors.New("oci image manifest: expected image manifest but found artifact manifest")
+	}
 	if doc.Manifests != nil {
-		return errors.New("ocimanifest: expected manifest but found index")
+		return errors.New("oci image manifest: expected image manifest but found index")
 	}
 	return nil
 }

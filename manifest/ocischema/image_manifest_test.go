@@ -200,7 +200,7 @@ func TestValidateManifest(t *testing.T) {
 		if err != nil {
 			t.Fatal("unexpected error marshaling manifest", err)
 		}
-		if err := validateManifest(b); err != nil {
+		if err := validateImageManifest(b); err != nil {
 			t.Error("manifest should be valid", err)
 		}
 	})
@@ -209,7 +209,7 @@ func TestValidateManifest(t *testing.T) {
 		if err != nil {
 			t.Fatal("unexpected error marshaling index", err)
 		}
-		if err := validateManifest(b); err == nil {
+		if err := validateImageManifest(b); err == nil {
 			t.Error("index should not be valid")
 		}
 	})
