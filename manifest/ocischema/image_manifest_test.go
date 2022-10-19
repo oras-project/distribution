@@ -13,7 +13,7 @@ import (
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 )
 
-var expectedManifestSerialization = []byte(`{
+var expectedImageManifestSerialization = []byte(`{
    "schemaVersion": 2,
    "mediaType": "application/vnd.oci.image.manifest.v1+json",
    "config": {
@@ -39,8 +39,8 @@ var expectedManifestSerialization = []byte(`{
    }
 }`)
 
-func makeTestManifest(mediaType string) Manifest {
-	return Manifest{
+func makeTestImageManifest(mediaType string) ImageManifest {
+	return ImageManifest{
 		Versioned: manifest.Versioned{
 			SchemaVersion: 2,
 			MediaType:     mediaType,
@@ -63,12 +63,12 @@ func makeTestManifest(mediaType string) Manifest {
 	}
 }
 
-func TestManifest(t *testing.T) {
-	manifest := makeTestManifest(v1.MediaTypeImageManifest)
+func TestImageManifest(t *testing.T) {
+	manifest := makeTestImageManifest(v1.MediaTypeImageManifest)
 
-	deserialized, err := FromStruct(manifest)
+	deserialized, err := ImageManifestFromStruct(manifest)
 	if err != nil {
-		t.Fatalf("error creating DeserializedManifest: %v", err)
+		t.Fatalf("error creating DeserializedImageManifest: %v", err)
 	}
 
 	mediaType, canonical, _ := deserialized.Payload()
@@ -88,11 +88,11 @@ func TestManifest(t *testing.T) {
 	}
 
 	// Check that canonical field matches expected value.
-	if !bytes.Equal(expectedManifestSerialization, canonical) {
-		t.Fatalf("manifest bytes not equal: %q != %q", string(canonical), string(expectedManifestSerialization))
+	if !bytes.Equal(expectedImageManifestSerialization, canonical) {
+		t.Fatalf("manifest bytes not equal: %q != %q", string(canonical), string(expectedImageManifestSerialization))
 	}
 
-	var unmarshalled DeserializedManifest
+	var unmarshalled DeserializedImageManifest
 	if err := json.Unmarshal(deserialized.canonical, &unmarshalled); err != nil {
 		t.Fatalf("error unmarshaling manifest: %v", err)
 	}
@@ -143,11 +143,11 @@ func TestManifest(t *testing.T) {
 }
 
 func mediaTypeTest(t *testing.T, mediaType string, shouldError bool) {
-	manifest := makeTestManifest(mediaType)
+	manifest := makeTestImageManifest(mediaType)
 
-	deserialized, err := FromStruct(manifest)
+	deserialized, err := ImageManifestFromStruct(manifest)
 	if err != nil {
-		t.Fatalf("error creating DeserializedManifest: %v", err)
+		t.Fatalf("error creating DeserializedImageManifest: %v", err)
 	}
 
 	unmarshalled, descriptor, err := distribution.UnmarshalManifest(
@@ -163,7 +163,7 @@ func mediaTypeTest(t *testing.T, mediaType string, shouldError bool) {
 			t.Fatalf("error unmarshaling manifest, %v", err)
 		}
 
-		asManifest := unmarshalled.(*DeserializedManifest)
+		asManifest := unmarshalled.(*DeserializedImageManifest)
 		if asManifest.MediaType != mediaType {
 			t.Fatalf("Bad media type '%v' as unmarshalled", asManifest.MediaType)
 		}
@@ -185,8 +185,8 @@ func TestMediaTypes(t *testing.T) {
 	mediaTypeTest(t, v1.MediaTypeImageManifest+"XXX", true)
 }
 
-func TestValidateManifest(t *testing.T) {
-	manifest := Manifest{
+func TestValidateImageManifest(t *testing.T) {
+	manifest := ImageManifest{
 		Config: distribution.Descriptor{Size: 1},
 		Layers: []distribution.Descriptor{{Size: 2}},
 	}
@@ -200,7 +200,7 @@ func TestValidateManifest(t *testing.T) {
 		if err != nil {
 			t.Fatal("unexpected error marshaling manifest", err)
 		}
-		if err := validateManifest(b); err != nil {
+		if err := validateImageManifest(b); err != nil {
 			t.Error("manifest should be valid", err)
 		}
 	})
@@ -209,7 +209,7 @@ func TestValidateManifest(t *testing.T) {
 		if err != nil {
 			t.Fatal("unexpected error marshaling index", err)
 		}
-		if err := validateManifest(b); err == nil {
+		if err := validateImageManifest(b); err == nil {
 			t.Error("index should not be valid")
 		}
 	})

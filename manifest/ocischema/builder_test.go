@@ -145,7 +145,7 @@ func TestBuilder(t *testing.T) {
 		t.Fatal("config was not put in the blob store")
 	}
 
-	manifest := built.(*DeserializedManifest).Manifest
+	manifest := built.(*DeserializedImageManifest).ImageManifest
 	if manifest.Annotations["hot"] != "potato" {
 		t.Fatalf("unexpected annotation in manifest: %s", manifest.Annotations["hot"])
 	}

@@ -331,7 +331,7 @@ func TestMediaTypes(t *testing.T) {
 }
 
 func TestValidateManifest(t *testing.T) {
-	manifest := ocischema.Manifest{
+	manifest := ocischema.ImageManifest{
 		Config: distribution.Descriptor{Size: 1},
 		Layers: []distribution.Descriptor{{Size: 2}},
 	}

@@ -441,17 +441,17 @@ func testOCIManifestStorage(t *testing.T, testname string, includeMediaTypes boo
 
 	// before putting the manifest test for proper handling of SchemaVersion
 
-	if manifest.(*ocischema.DeserializedManifest).Manifest.SchemaVersion != 2 {
+	if manifest.(*ocischema.DeserializedImageManifest).ImageManifest.SchemaVersion != 2 {
 		t.Fatalf("%s: unexpected error generating default version for oci manifest", testname)
 	}
-	manifest.(*ocischema.DeserializedManifest).Manifest.SchemaVersion = 0
+	manifest.(*ocischema.DeserializedImageManifest).ImageManifest.SchemaVersion = 0
 
 	var manifestDigest digest.Digest
 	if manifestDigest, err = ms.Put(ctx, manifest); err != nil {
 		if err.Error() != "unrecognized manifest schema version 0" {
 			t.Fatalf("%s: unexpected error putting manifest: %v", testname, err)
 		}
-		manifest.(*ocischema.DeserializedManifest).Manifest.SchemaVersion = 2
+		manifest.(*ocischema.DeserializedImageManifest).ImageManifest.SchemaVersion = 2
 		if manifestDigest, err = ms.Put(ctx, manifest); err != nil {
 			t.Fatalf("%s: unexpected error putting manifest: %v", testname, err)
 		}
@@ -494,7 +494,7 @@ func testOCIManifestStorage(t *testing.T, testname string, includeMediaTypes boo
 		t.Fatalf("%s: unexpected error fetching manifest: %v", testname, err)
 	}
 
-	fetchedManifest, ok := fromStore.(*ocischema.DeserializedManifest)
+	fetchedManifest, ok := fromStore.(*ocischema.DeserializedImageManifest)
 	if !ok {
 		t.Fatalf("%s: unexpected type for fetched manifest", testname)
 	}

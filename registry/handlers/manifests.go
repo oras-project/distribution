@@ -156,7 +156,7 @@ func (imh *manifestHandler) GetManifest(w http.ResponseWriter, r *http.Request) 
 	manifestList, isManifestList := manifest.(*manifestlist.DeserializedManifestList)
 	if isSchema2 {
 		manifestType = manifestSchema2
-	} else if _, isOCImanifest := manifest.(*ocischema.DeserializedManifest); isOCImanifest {
+	} else if _, isOCImanifest := manifest.(*ocischema.DeserializedImageManifest); isOCImanifest {
 		manifestType = ociSchema
 	} else if isManifestList {
 		if manifestList.MediaType == manifestlist.MediaTypeManifestList {
@@ -432,7 +432,7 @@ func (imh *manifestHandler) applyResourcePolicy(manifest distribution.Manifest) 
 		default:
 			return errcode.ErrorCodeDenied.WithMessage("unknown manifest class for " + m.Config.MediaType)
 		}
-	case *ocischema.DeserializedManifest:
+	case *ocischema.DeserializedImageManifest:
 		switch m.Config.MediaType {
 		case v1.MediaTypeImageConfig:
 			class = imageClass

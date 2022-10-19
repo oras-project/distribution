@@ -57,7 +57,7 @@ func (mb *Builder) SetMediaType(mediaType string) error {
 
 // Build produces a final manifest from the given references.
 func (mb *Builder) Build(ctx context.Context) (distribution.Manifest, error) {
-	m := Manifest{
+	m := ImageManifest{
 		Versioned: manifest.Versioned{
 			SchemaVersion: 2,
 			MediaType:     mb.mediaType,
@@ -76,7 +76,7 @@ func (mb *Builder) Build(ctx context.Context) (distribution.Manifest, error) {
 		// Override MediaType, since Put always replaces the specified media
 		// type with application/octet-stream in the descriptor it returns.
 		m.Config.MediaType = v1.MediaTypeImageConfig
-		return FromStruct(m)
+		return ImageManifestFromStruct(m)
 	case distribution.ErrBlobUnknown:
 		// nop
 	default:
@@ -92,7 +92,7 @@ func (mb *Builder) Build(ctx context.Context) (distribution.Manifest, error) {
 		return nil, err
 	}
 
-	return FromStruct(m)
+	return ImageManifestFromStruct(m)
 }
 
 // AppendReference adds a reference to the current ManifestBuilder.
