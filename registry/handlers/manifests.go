@@ -38,9 +38,10 @@ const (
 	manifestSchema1     storageType = iota // 0
 	manifestSchema2                        // 1
 	manifestlistSchema                     // 2
-	ociSchema                              // 3
-	ociImageIndexSchema                    // 4
-	numStorageTypes                        // 5
+	ociImageSchema                         // 3
+	ociArtifactSchema                      // 4
+	ociImageIndexSchema                    // 5
+	numStorageTypes                        // 6
 )
 
 // manifestDispatcher takes the request context and builds the
@@ -80,9 +81,9 @@ type manifestHandler struct {
 	Digest digest.Digest
 }
 
-// GetManifest fetches the image manifest from the storage backend, if it exists.
+// GetManifest fetches the manifest from the storage backend, if it exists.
 func (imh *manifestHandler) GetManifest(w http.ResponseWriter, r *http.Request) {
-	dcontext.GetLogger(imh).Debug("GetImageManifest")
+	dcontext.GetLogger(imh).Debug("GetManifest")
 	manifests, err := imh.Repository.Manifests(imh)
 	if err != nil {
 		imh.Errors = append(imh.Errors, err)
@@ -110,7 +111,10 @@ func (imh *manifestHandler) GetManifest(w http.ResponseWriter, r *http.Request) 
 				supports[manifestlistSchema] = true
 			}
 			if mediaType == v1.MediaTypeImageManifest {
-				supports[ociSchema] = true
+				supports[ociImageSchema] = true
+			}
+			if mediaType == v1.MediaTypeArtifactManifest {
+				supports[ociArtifactSchema] = true
 			}
 			if mediaType == v1.MediaTypeImageIndex {
 				supports[ociImageIndexSchema] = true
@@ -156,8 +160,9 @@ func (imh *manifestHandler) GetManifest(w http.ResponseWriter, r *http.Request) 
 	manifestList, isManifestList := manifest.(*manifestlist.DeserializedManifestList)
 	if isSchema2 {
 		manifestType = manifestSchema2
-	} else if _, isOCImanifest := manifest.(*ocischema.DeserializedManifest); isOCImanifest {
-		manifestType = ociSchema
+	} else if _, isOCIImageManifest := manifest.(*ocischema.DeserializedManifest); isOCIImageManifest {
+		manifestType = ociImageSchema
+		// TODO: else if isOCIArtifactManifest { need to implement artifact type assertion }
 	} else if isManifestList {
 		if manifestList.MediaType == manifestlist.MediaTypeManifestList {
 			manifestType = manifestlistSchema
@@ -166,8 +171,12 @@ func (imh *manifestHandler) GetManifest(w http.ResponseWriter, r *http.Request) 
 		}
 	}
 
-	if manifestType == ociSchema && !supports[ociSchema] {
-		imh.Errors = append(imh.Errors, v2.ErrorCodeManifestUnknown.WithMessage("OCI manifest found, but accept header does not support OCI manifests"))
+	if manifestType == ociImageSchema && !supports[ociImageSchema] {
+		imh.Errors = append(imh.Errors, v2.ErrorCodeManifestUnknown.WithMessage("OCI image manifest found, but accept header does not support OCI image manifests"))
+		return
+	}
+	if manifestType == ociArtifactSchema && !supports[ociArtifactSchema] {
+		imh.Errors = append(imh.Errors, v2.ErrorCodeManifestUnknown.WithMessage("OCI artifact manifest found, but accept header does not support OCI artifact manifests"))
 		return
 	}
 	if manifestType == ociImageIndexSchema && !supports[ociImageIndexSchema] {
@@ -288,7 +297,7 @@ func etagMatch(r *http.Request, etag string) bool {
 
 // PutManifest validates and stores a manifest in the registry.
 func (imh *manifestHandler) PutManifest(w http.ResponseWriter, r *http.Request) {
-	dcontext.GetLogger(imh).Debug("PutImageManifest")
+	dcontext.GetLogger(imh).Debug("PutManifest")
 	manifests, err := imh.Repository.Manifests(imh)
 	if err != nil {
 		imh.Errors = append(imh.Errors, err)
@@ -296,7 +305,7 @@ func (imh *manifestHandler) PutManifest(w http.ResponseWriter, r *http.Request) 
 	}
 
 	var jsonBuf bytes.Buffer
-	if err := copyFullPayload(imh, w, r, &jsonBuf, maxManifestBodySize, "image manifest PUT"); err != nil {
+	if err := copyFullPayload(imh, w, r, &jsonBuf, maxManifestBodySize, "manifest PUT"); err != nil {
 		// copyFullPayload reports the error if necessary
 		imh.Errors = append(imh.Errors, v2.ErrorCodeManifestInvalid.WithDetail(err.Error()))
 		return
@@ -322,6 +331,7 @@ func (imh *manifestHandler) PutManifest(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
+	// TODO: Should I add artifact manifest here? If so, refactor with switch
 	isAnOCIManifest := mediaType == v1.MediaTypeImageManifest || mediaType == v1.MediaTypeImageIndex
 
 	if isAnOCIManifest {
