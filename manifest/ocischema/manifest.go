@@ -126,12 +126,6 @@ func (m DeserializedManifest) Payload() (string, []byte, error) {
 	return v1.MediaTypeImageManifest, m.canonical, nil
 }
 
-// unknownDocument represents a manifest, manifest list, or index that has not
-// yet been validated
-type unknownDocument struct {
-	Manifests interface{} `json:"manifests,omitempty"`
-}
-
 // validateManifest returns an error if the byte slice is invalid JSON or if it
 // contains fields that belong to a index
 func validateManifest(b []byte) error {
