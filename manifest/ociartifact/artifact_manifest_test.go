@@ -1,4 +1,4 @@
-package ocischema
+package ociartifact
 
 import (
 	"bytes"
@@ -8,6 +8,7 @@ import (
 
 	"github.com/distribution/distribution/v3"
 	"github.com/distribution/distribution/v3/manifest/manifestlist"
+	"github.com/distribution/distribution/v3/manifest/ocischema"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 )
 
@@ -105,7 +106,7 @@ func TestValidateArtifactManifest(t *testing.T) {
 		ArtifactType: "example/test",
 		Blobs:        []distribution.Descriptor{{Size: 7}},
 	}
-	imageManifest := Manifest{
+	imageManifest := ocischema.Manifest{
 		Config: distribution.Descriptor{Size: 1},
 		Layers: []distribution.Descriptor{{Size: 2}},
 	}

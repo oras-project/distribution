@@ -1,4 +1,4 @@
-package ocischema
+package ociartifact
 
 import (
 	"encoding/json"
@@ -115,6 +115,13 @@ func (m *DeserializedArtifactManifest) MarshalJSON() ([]byte, error) {
 // calculate the content identifier.
 func (m DeserializedArtifactManifest) Payload() (string, []byte, error) {
 	return v1.MediaTypeArtifactManifest, m.canonical, nil
+}
+
+// unknownDocument represents a manifest, manifest list, or index that has not
+// yet been validated
+type unknownDocument struct {
+	Config    interface{} `json:"config,omitempty"`
+	Manifests interface{} `json:"manifests,omitempty"`
 }
 
 // validateArtifactManifest returns an error if the byte slice is invalid JSON or if it

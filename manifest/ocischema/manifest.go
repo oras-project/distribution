@@ -126,6 +126,14 @@ func (m DeserializedManifest) Payload() (string, []byte, error) {
 	return v1.MediaTypeImageManifest, m.canonical, nil
 }
 
+// unknownDocument represents a manifest, manifest list, or index that has not
+// yet been validated
+type unknownDocument struct {
+	MediaType string      `json:"mediaType,omitempty"`
+	Config    interface{} `json:"config,omitempty"`
+	Manifests interface{} `json:"manifests,omitempty"`
+}
+
 // validateManifest returns an error if the byte slice is invalid JSON or if it
 // contains fields that belong to a index
 func validateManifest(b []byte) error {
@@ -133,8 +141,11 @@ func validateManifest(b []byte) error {
 	if err := json.Unmarshal(b, &doc); err != nil {
 		return err
 	}
+	if doc.MediaType == v1.MediaTypeArtifactManifest && doc.Config == nil {
+		return errors.New("oci image manifest: expected image manifest but found artifact manifest")
+	}
 	if doc.Manifests != nil {
-		return errors.New("ocimanifest: expected manifest but found index")
+		return errors.New("oci image manifest: expected manifest but found index")
 	}
 	return nil
 }
