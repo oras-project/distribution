@@ -40,7 +40,7 @@ const (
 	manifestSchema1     storageType = iota // 0
 	manifestSchema2                        // 1
 	manifestlistSchema                     // 2
-	ociImageSchema                         // 3
+	ociSchema                              // 3
 	ociArtifactSchema                      // 4
 	ociImageIndexSchema                    // 5
 	numStorageTypes                        // 6
@@ -113,7 +113,7 @@ func (imh *manifestHandler) GetManifest(w http.ResponseWriter, r *http.Request) 
 				supports[manifestlistSchema] = true
 			}
 			if mediaType == v1.MediaTypeImageManifest {
-				supports[ociImageSchema] = true
+				supports[ociSchema] = true
 			}
 			if mediaType == v1.MediaTypeArtifactManifest {
 				supports[ociArtifactSchema] = true
@@ -164,7 +164,7 @@ func (imh *manifestHandler) GetManifest(w http.ResponseWriter, r *http.Request) 
 	if isSchema2 {
 		manifestType = manifestSchema2
 	} else if _, isOCIImageManifest := manifest.(*ocischema.DeserializedManifest); isOCIImageManifest {
-		manifestType = ociImageSchema
+		manifestType = ociSchema
 	} else if _, isOCIArtifactManifest := manifest.(*ociartifact.DeserializedArtifactManifest); isOCIArtifactManifest {
 		manifestType = ociArtifactSchema
 	} else if isManifestList {
@@ -175,7 +175,7 @@ func (imh *manifestHandler) GetManifest(w http.ResponseWriter, r *http.Request) 
 		}
 	}
 
-	if manifestType == ociImageSchema && !supports[ociImageSchema] {
+	if manifestType == ociSchema && !supports[ociSchema] {
 		imh.Errors = append(imh.Errors, v2.ErrorCodeManifestUnknown.WithMessage("OCI image manifest found, but accept header does not support OCI image manifests"))
 		return
 	}
