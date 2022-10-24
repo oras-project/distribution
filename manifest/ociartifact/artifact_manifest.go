@@ -52,10 +52,13 @@ type ArtifactManifest struct {
 }
 
 // References returns the descriptors of this artifact manifest references.
-func (m ArtifactManifest) References() []distribution.Descriptor {
-	references := make([]distribution.Descriptor, 0, 1+len(m.Blobs))
-	references = append(references, m.Blobs...)
-	references = append(references, m.Subject)
+func (am ArtifactManifest) References() []distribution.Descriptor {
+	var references []distribution.Descriptor
+	references = append(references, am.Blobs...)
+	// if Subject exists, append it to references, this part needs more design
+	if am.Subject.Digest != "" {
+		references = append(references, am.Subject)
+	}
 	return references
 }
 
