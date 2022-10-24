@@ -288,6 +288,11 @@ func (repo *repository) Manifests(ctx context.Context, options ...distribution.M
 			blobStore:    blobStore,
 			manifestURLs: repo.registry.manifestURLs,
 		},
+		ociartifactHandler: &ociArtifactManifestHandler{
+			repository: repo,
+			blobStore:  blobStore,
+			ctx:        ctx,
+		},
 	}
 
 	// Apply options

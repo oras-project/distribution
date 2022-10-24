@@ -9,6 +9,7 @@ import (
 	dcontext "github.com/distribution/distribution/v3/context"
 	"github.com/distribution/distribution/v3/manifest"
 	"github.com/distribution/distribution/v3/manifest/manifestlist"
+	"github.com/distribution/distribution/v3/manifest/ociartifact"
 	"github.com/distribution/distribution/v3/manifest/ocischema"
 	"github.com/distribution/distribution/v3/manifest/schema1"
 	"github.com/distribution/distribution/v3/manifest/schema2"
@@ -51,6 +52,7 @@ type manifestStore struct {
 	schema1Handler      ManifestHandler
 	schema2Handler      ManifestHandler
 	ocischemaHandler    ManifestHandler
+	ociartifactHandler  ManifestHandler
 	manifestListHandler ManifestHandler
 }
 
@@ -121,9 +123,13 @@ func (ms *manifestStore) Get(ctx context.Context, dgst digest.Digest, options ..
 		default:
 			return nil, distribution.ErrManifestVerification{fmt.Errorf("unrecognized manifest content type %s", versioned.MediaType)}
 		}
+	default:
+		// This is bad style but let it be now, it works fine
+		if versioned.MediaType == v1.MediaTypeArtifactManifest {
+			return ms.ociartifactHandler.Unmarshal(ctx, dgst, content)
+		}
+		return nil, fmt.Errorf("unrecognized manifest schema version %d", versioned.SchemaVersion)
 	}
-
-	return nil, fmt.Errorf("unrecognized manifest schema version %d", versioned.SchemaVersion)
 }
 
 func (ms *manifestStore) Put(ctx context.Context, manifest distribution.Manifest, options ...distribution.ManifestServiceOption) (digest.Digest, error) {
@@ -136,6 +142,8 @@ func (ms *manifestStore) Put(ctx context.Context, manifest distribution.Manifest
 		return ms.schema2Handler.Put(ctx, manifest, ms.skipDependencyVerification)
 	case *ocischema.DeserializedManifest:
 		return ms.ocischemaHandler.Put(ctx, manifest, ms.skipDependencyVerification)
+	case *ociartifact.DeserializedArtifactManifest:
+		return ms.ociartifactHandler.Put(ctx, manifest, ms.skipDependencyVerification)
 	case *manifestlist.DeserializedManifestList:
 		return ms.manifestListHandler.Put(ctx, manifest, ms.skipDependencyVerification)
 	}
