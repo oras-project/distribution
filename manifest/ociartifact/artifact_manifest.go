@@ -12,10 +12,7 @@ import (
 
 func init() {
 	artifactFunc := func(b []byte) (distribution.Manifest, distribution.Descriptor, error) {
-		if err := validateArtifactManifest(b); err != nil {
-			return nil, distribution.Descriptor{}, err
-		}
-		m := new(DeserializedArtifactManifest)
+		m := new(DeserializedManifest)
 		err := m.UnmarshalJSON(b)
 		if err != nil {
 			return nil, distribution.Descriptor{}, err
@@ -30,8 +27,8 @@ func init() {
 	}
 }
 
-// ArtifactManifest defines an ocischema artifact manifest.
-type ArtifactManifest struct {
+// Manifest defines an ocischema artifact manifest.
+type Manifest struct {
 	// MediaType must be application/vnd.oci.artifact.manifest.v1+json.
 	MediaType string `json:"mediaType"`
 
@@ -52,44 +49,44 @@ type ArtifactManifest struct {
 }
 
 // References returns the descriptors of this artifact manifest references.
-func (am ArtifactManifest) References() []distribution.Descriptor {
+func (m Manifest) References() []distribution.Descriptor {
 	var references []distribution.Descriptor
-	references = append(references, am.Blobs...)
+	references = append(references, m.Blobs...)
 	// if Subject exists, append it to references, this part needs more design
-	if am.Subject.Digest != "" {
-		references = append(references, am.Subject)
+	if m.Subject.Digest != "" {
+		references = append(references, m.Subject)
 	}
 	return references
 }
 
-// DeserializedArtifactManifest wraps ArtifactManifest with a copy of the original JSON.
+// DeserializedManifest wraps Manifest with a copy of the original JSON.
 // It satisfies the distribution.Manifest interface.
-type DeserializedArtifactManifest struct {
-	ArtifactManifest
+type DeserializedManifest struct {
+	Manifest
 
-	// canonical is the canonical byte representation of the ArtifactManifest.
+	// canonical is the canonical byte representation of the Manifest.
 	canonical []byte
 }
 
-// ArtifactManifestFromStruct takes an ArtifactManifest structure, marshals it to JSON, and returns a
-// DeserializedArtifactManifest which contains the manifest and its JSON representation.
-func ArtifactManifestFromStruct(m ArtifactManifest) (*DeserializedArtifactManifest, error) {
-	var deserialized DeserializedArtifactManifest
-	deserialized.ArtifactManifest = m
+// FromStruct takes an Manifest structure, marshals it to JSON, and returns a
+// DeserializedManifest which contains the manifest and its JSON representation.
+func FromStruct(m Manifest) (*DeserializedManifest, error) {
+	var deserialized DeserializedManifest
+	deserialized.Manifest = m
 
 	var err error
 	deserialized.canonical, err = json.MarshalIndent(&m, "", "   ")
 	return &deserialized, err
 }
 
-// UnmarshalJSON populates a new ArtifactManifest struct from JSON data.
-func (m *DeserializedArtifactManifest) UnmarshalJSON(b []byte) error {
+// UnmarshalJSON populates a new Manifest struct from JSON data.
+func (m *DeserializedManifest) UnmarshalJSON(b []byte) error {
 	m.canonical = make([]byte, len(b))
 	// store manifest in canonical
 	copy(m.canonical, b)
 
-	// Unmarshal canonical JSON into an ArtifactManifest object
-	var manifest ArtifactManifest
+	// Unmarshal canonical JSON into an Manifest object
+	var manifest Manifest
 	if err := json.Unmarshal(m.canonical, &manifest); err != nil {
 		return err
 	}
@@ -99,46 +96,23 @@ func (m *DeserializedArtifactManifest) UnmarshalJSON(b []byte) error {
 			v1.MediaTypeArtifactManifest, manifest.MediaType)
 	}
 
-	m.ArtifactManifest = manifest
+	m.Manifest = manifest
 
 	return nil
 }
 
 // MarshalJSON returns the contents of canonical. If canonical is empty,
 // marshals the inner contents.
-func (m *DeserializedArtifactManifest) MarshalJSON() ([]byte, error) {
+func (m *DeserializedManifest) MarshalJSON() ([]byte, error) {
 	if len(m.canonical) > 0 {
 		return m.canonical, nil
 	}
 
-	return nil, errors.New("JSON representation not initialized in DeserializedArtifactManifest")
+	return nil, errors.New("JSON representation not initialized in DeserializedManifest")
 }
 
 // Payload returns the raw content of the artifact manifest. The contents can be used to
 // calculate the content identifier.
-func (m DeserializedArtifactManifest) Payload() (string, []byte, error) {
+func (m DeserializedManifest) Payload() (string, []byte, error) {
 	return v1.MediaTypeArtifactManifest, m.canonical, nil
-}
-
-// unknownDocument represents a manifest, manifest list, or index that has not
-// yet been validated
-type unknownDocument struct {
-	Config    interface{} `json:"config,omitempty"`
-	Manifests interface{} `json:"manifests,omitempty"`
-}
-
-// validateArtifactManifest returns an error if the byte slice is invalid JSON or if it
-// contains fields that belong to an index or an image manifest
-func validateArtifactManifest(b []byte) error {
-	var doc unknownDocument
-	if err := json.Unmarshal(b, &doc); err != nil {
-		return err
-	}
-	if doc.Config != nil {
-		return errors.New("oci artifact manifest: expected artifact manifest but found image manifest")
-	}
-	if doc.Manifests != nil {
-		return errors.New("oci artifact manifest: expected artifact manifest but found index")
-	}
-	return nil
 }

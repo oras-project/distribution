@@ -7,8 +7,6 @@ import (
 	"testing"
 
 	"github.com/distribution/distribution/v3"
-	"github.com/distribution/distribution/v3/manifest/manifestlist"
-	"github.com/distribution/distribution/v3/manifest/ocischema"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 )
 
@@ -35,8 +33,8 @@ var expectedArtifactManifestSerialization = []byte(`{
    }
 }`)
 
-func makeTestArtifactManifest() ArtifactManifest {
-	return ArtifactManifest{
+func makeTestManifest() Manifest {
+	return Manifest{
 		MediaType:    v1.MediaTypeArtifactManifest,
 		ArtifactType: "application/vnd.example.sbom.v1",
 		Blobs: []distribution.Descriptor{
@@ -57,21 +55,21 @@ func makeTestArtifactManifest() ArtifactManifest {
 	}
 }
 func TestArtifactManifest(t *testing.T) {
-	testManifest := makeTestArtifactManifest()
+	testManifest := makeTestManifest()
 
-	// Test ArtifactManifestFromStruct()
-	deserialized, err := ArtifactManifestFromStruct(testManifest)
+	// Test FromStruct()
+	deserialized, err := FromStruct(testManifest)
 	if err != nil {
-		t.Fatalf("error creating DeserializedArtifactManifest: %v", err)
+		t.Fatalf("error creating DeserializedManifest: %v", err)
 	}
 
-	// Test DeserializedArtifactManifest.Payload()
+	// Test DeserializedManifest.Payload()
 	mediaType, canonical, _ := deserialized.Payload()
 	if mediaType != v1.MediaTypeArtifactManifest {
 		t.Fatalf("unexpected media type: %s", mediaType)
 	}
 
-	// Validate DeserializedArtifactManifest.canonical
+	// Validate DeserializedManifest.canonical
 	p, err := json.MarshalIndent(&testManifest, "", "   ")
 	if err != nil {
 		t.Fatalf("error marshaling manifest: %v", err)
@@ -84,8 +82,8 @@ func TestArtifactManifest(t *testing.T) {
 		t.Fatalf("manifest bytes not equal: %q != %q", string(canonical), string(expectedArtifactManifestSerialization))
 	}
 
-	// Validate DeserializedArtifactManifest.ArtifactManifest
-	var unmarshalled DeserializedArtifactManifest
+	// Validate DeserializedManifest.Manifest
+	var unmarshalled DeserializedManifest
 	if err := json.Unmarshal(deserialized.canonical, &unmarshalled); err != nil {
 		t.Fatalf("error unmarshaling manifest: %v", err)
 	}
@@ -93,53 +91,9 @@ func TestArtifactManifest(t *testing.T) {
 		t.Fatalf("manifests are different after unmarshaling: %v != %v", unmarshalled, *deserialized)
 	}
 
-	// Test DeserializedArtifactManifest.References()
+	// Test DeserializedManifest.References()
 	references := deserialized.References()
 	if len(references) != 2 {
 		t.Fatalf("unexpected number of references: %d", len(references))
 	}
-}
-
-func TestValidateArtifactManifest(t *testing.T) {
-	artifactManifest := ArtifactManifest{
-		MediaType:    v1.MediaTypeArtifactManifest,
-		ArtifactType: "example/test",
-		Blobs:        []distribution.Descriptor{{Size: 7}},
-	}
-	imageManifest := ocischema.Manifest{
-		Config: distribution.Descriptor{Size: 1},
-		Layers: []distribution.Descriptor{{Size: 2}},
-	}
-	index := manifestlist.ManifestList{
-		Manifests: []manifestlist.ManifestDescriptor{
-			{Descriptor: distribution.Descriptor{Size: 9}},
-		},
-	}
-	t.Run("valid", func(t *testing.T) {
-		b, err := json.Marshal(artifactManifest)
-		if err != nil {
-			t.Fatal("unexpected error marshaling manifest", err)
-		}
-		if err := validateArtifactManifest(b); err != nil {
-			t.Error("manifest should be valid", err)
-		}
-	})
-	t.Run("invalid_image_manifest", func(t *testing.T) {
-		b, err := json.Marshal(imageManifest)
-		if err != nil {
-			t.Fatal("unexpected error marshaling image manifest", err)
-		}
-		if err := validateArtifactManifest(b); err == nil {
-			t.Error("image manifest should not be valid")
-		}
-	})
-	t.Run("invalid_index", func(t *testing.T) {
-		b, err := json.Marshal(index)
-		if err != nil {
-			t.Fatal("unexpected error marshaling index", err)
-		}
-		if err := validateArtifactManifest(b); err == nil {
-			t.Error("index should not be valid")
-		}
-	})
 }
