@@ -42,7 +42,7 @@ type Manifest struct {
 
 	// Subject specifies the descriptor of another manifest. This value is
 	// used by the referrers API.
-	Subject distribution.Descriptor `json:"subject,omitempty"`
+	Subject *distribution.Descriptor `json:"subject,omitempty"`
 
 	// Annotations contains arbitrary metadata for the artifact manifest.
 	Annotations map[string]string `json:"annotations,omitempty"`
@@ -52,9 +52,8 @@ type Manifest struct {
 func (m Manifest) References() []distribution.Descriptor {
 	var references []distribution.Descriptor
 	references = append(references, m.Blobs...)
-	// if Subject exists, append it to references, this part needs more design
-	if m.Subject.Digest != "" {
-		references = append(references, m.Subject)
+	if m.Subject != nil {
+		references = append(references, *m.Subject)
 	}
 	return references
 }

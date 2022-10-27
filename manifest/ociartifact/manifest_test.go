@@ -44,7 +44,7 @@ func makeTestManifest() Manifest {
 				Digest:    "sha256:87923725d74f4bfb94c9e86d64170f7521aad8221a5de834851470ca142da630",
 			},
 		},
-		Subject: distribution.Descriptor{
+		Subject: &distribution.Descriptor{
 			MediaType: v1.MediaTypeImageManifest,
 			Size:      1234,
 			Digest:    "sha256:cc06a2839488b8bd2a2b99dcdc03d5cfd818eed72ad08ef3cc197aac64c0d0a0",
