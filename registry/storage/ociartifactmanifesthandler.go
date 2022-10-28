@@ -23,7 +23,7 @@ var _ ManifestHandler = &ociArtifactManifestHandler{}
 func (ms *ociArtifactManifestHandler) Unmarshal(ctx context.Context, dgst digest.Digest, content []byte) (distribution.Manifest, error) {
 	dcontext.GetLogger(ms.ctx).Debug("(*ociArtifactManifestHandler).Unmarshal")
 
-	m := &ociartifact.DeserializedArtifactManifest{}
+	m := &ociartifact.DeserializedManifest{}
 	if err := m.UnmarshalJSON(content); err != nil {
 		return nil, err
 	}
@@ -34,7 +34,7 @@ func (ms *ociArtifactManifestHandler) Unmarshal(ctx context.Context, dgst digest
 func (ms *ociArtifactManifestHandler) Put(ctx context.Context, manifest distribution.Manifest, skipDependencyVerification bool) (digest.Digest, error) {
 	dcontext.GetLogger(ms.ctx).Debug("(*ociArtifactManifestHandler).Put")
 
-	m, ok := manifest.(*ociartifact.DeserializedArtifactManifest)
+	m, ok := manifest.(*ociartifact.DeserializedManifest)
 	if !ok {
 		return "", fmt.Errorf("non-oci artifact manifest put to ociArtifactManifestHandler: %T", manifest)
 	}
@@ -60,7 +60,7 @@ func (ms *ociArtifactManifestHandler) Put(ctx context.Context, manifest distribu
 // verifyArtifactManifest ensures that the manifest content is valid from the
 // perspective of the registry. As a policy, the registry only tries to store
 // valid content, leaving trust policies of that content up to consumers.
-func (ms *ociArtifactManifestHandler) verifyArtifactManifest(ctx context.Context, mnfst ociartifact.DeserializedArtifactManifest, skipDependencyVerification bool) error {
+func (ms *ociArtifactManifestHandler) verifyArtifactManifest(ctx context.Context, mnfst ociartifact.DeserializedManifest, skipDependencyVerification bool) error {
 	var errs distribution.ErrManifestVerification
 
 	if mnfst.MediaType != v1.MediaTypeArtifactManifest {

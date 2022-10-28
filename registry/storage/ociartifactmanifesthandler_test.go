@@ -29,12 +29,12 @@ func TestVerifyOCIArtifactManifestBlobsAndSubject(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	template := ociartifact.ArtifactManifest{
+	template := ociartifact.Manifest{
 		MediaType: v1.MediaTypeArtifactManifest,
 	}
 
-	checkFn := func(m ociartifact.ArtifactManifest, rerr error) {
-		dm, err := ociartifact.ArtifactManifestFromStruct(m)
+	checkFn := func(m ociartifact.Manifest, rerr error) {
+		dm, err := ociartifact.FromStruct(m)
 		if err != nil {
 			t.Error(err)
 			return
@@ -85,7 +85,7 @@ func TestVerifyOCIArtifactManifestBlobsAndSubject(t *testing.T) {
 
 	for _, c := range layercases {
 		m := template
-		m.Subject = subject
+		m.Subject = &subject
 		m.Blobs = []distribution.Descriptor{c.Desc}
 		checkFn(m, c.Err)
 	}
@@ -105,7 +105,7 @@ func TestVerifyOCIArtifactManifestBlobsAndSubject(t *testing.T) {
 
 	for _, c := range subjectcases {
 		m := template
-		m.Subject = c.Desc
+		m.Subject = &c.Desc
 		m.Blobs = []distribution.Descriptor{blob}
 		checkFn(m, c.Err)
 	}

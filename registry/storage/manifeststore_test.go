@@ -557,11 +557,11 @@ func TestOCIArtifactManifestStorage(t *testing.T) {
 	}
 
 	// create and push the blob and subject manifests into the storage first
-	blobAM := ociartifact.ArtifactManifest{
+	blobAM := ociartifact.Manifest{
 		MediaType:    v1.MediaTypeArtifactManifest,
 		ArtifactType: "test/blob",
 	}
-	blob, err := ociartifact.ArtifactManifestFromStruct(blobAM)
+	blob, err := ociartifact.FromStruct(blobAM)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -570,11 +570,11 @@ func TestOCIArtifactManifestStorage(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	subjectAM := ociartifact.ArtifactManifest{
+	subjectAM := ociartifact.Manifest{
 		MediaType:    v1.MediaTypeArtifactManifest,
 		ArtifactType: "test/subject",
 	}
-	subject, err := ociartifact.ArtifactManifestFromStruct(subjectAM)
+	subject, err := ociartifact.FromStruct(subjectAM)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -584,13 +584,13 @@ func TestOCIArtifactManifestStorage(t *testing.T) {
 	}
 
 	// create the main artifact manifest that has the blob and subject as references
-	am := ociartifact.ArtifactManifest{
+	am := ociartifact.Manifest{
 		MediaType:    v1.MediaTypeArtifactManifest,
 		ArtifactType: "test/main",
 		Blobs:        []distribution.Descriptor{{Digest: blobDigest}},
-		Subject:      distribution.Descriptor{Digest: subjectDigest},
+		Subject:      &distribution.Descriptor{Digest: subjectDigest},
 	}
-	manifest, err := ociartifact.ArtifactManifestFromStruct(am)
+	manifest, err := ociartifact.FromStruct(am)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -606,7 +606,7 @@ func TestOCIArtifactManifestStorage(t *testing.T) {
 		t.Fatalf("unexpected error fetching manifest: %v", err)
 	}
 
-	fetchedManifest, ok := fromStore.(*ociartifact.DeserializedArtifactManifest)
+	fetchedManifest, ok := fromStore.(*ociartifact.DeserializedManifest)
 	if !ok {
 		t.Fatalf("unexpected type for fetched manifest")
 	}
