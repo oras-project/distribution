@@ -118,6 +118,26 @@ func makeURLBuilderTestCases(urlBuilder *URLBuilder) []urlBuilderTestCase {
 				})
 			},
 		},
+		{
+			description:  "build referrers url",
+			expectedPath: "/v2/foo/bar/referrers/sha256:3b3692957d439ac1928219a83fac91e7bf96c153725526874673ae1f2023f8d5",
+			expectedErr:  nil,
+			build: func() (string, error) {
+				ref, _ := reference.WithDigest(fooBarRef, "sha256:3b3692957d439ac1928219a83fac91e7bf96c153725526874673ae1f2023f8d5")
+				return urlBuilder.BuildReferrersURL(ref)
+			},
+		},
+		{
+			description:  "build referrers url with artifact type parameter",
+			expectedPath: "/v2/foo/bar/referrers/sha256:3b3692957d439ac1928219a83fac91e7bf96c153725526874673ae1f2023f8d5?artifactType=example.test.type",
+			expectedErr:  nil,
+			build: func() (string, error) {
+				ref, _ := reference.WithDigest(fooBarRef, "sha256:3b3692957d439ac1928219a83fac91e7bf96c153725526874673ae1f2023f8d5")
+				return urlBuilder.BuildReferrersURL(ref, url.Values{
+					"artifactType": []string{"example.test.type"},
+				})
+			},
+		},
 	}
 }
 

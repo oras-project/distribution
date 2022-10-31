@@ -170,6 +170,14 @@ func TestRouter(t *testing.T) {
 				"reference": "tag",
 			},
 		},
+		{
+			RouteName:  RouteNameReferrers,
+			RequestURI: "/v2/foo/referrers/sha256:abcdef0919234",
+			Vars: map[string]string{
+				"name":   "foo",
+				"digest": "sha256:abcdef0919234",
+			},
+		},
 	}
 
 	checkTestRouter(t, testCases, "", true)

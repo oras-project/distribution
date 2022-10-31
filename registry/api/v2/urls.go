@@ -162,6 +162,18 @@ func (ub *URLBuilder) BuildManifestURL(ref reference.Named) (string, error) {
 	return manifestURL.String(), nil
 }
 
+// BuildReferrersURL constructs the url to fetch a list of referrers
+func (ub *URLBuilder) BuildReferrersURL(ref reference.Canonical, values ...url.Values) (string, error) {
+	route := ub.cloneRoute(RouteNameReferrers)
+
+	referrersURL, err := route.URL("name", ref.Name(), "digest", ref.Digest().String())
+	if err != nil {
+		return "", err
+	}
+
+	return appendValuesURL(referrersURL, values...).String(), nil
+}
+
 // BuildBlobURL constructs the url for the blob identified by name and dgst.
 func (ub *URLBuilder) BuildBlobURL(ref reference.Canonical) (string, error) {
 	route := ub.cloneRoute(RouteNameBlob)

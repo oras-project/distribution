@@ -1595,6 +1595,133 @@ var routeDescriptors = []RouteDescriptor{
 			},
 		},
 	},
+	{
+		Name:        RouteNameReferrers,
+		Path:        "/v2/{name:" + reference.NameRegexp.String() + "}/referrers/{digest:" + digest.DigestRegexp.String() + "}",
+		Entity:      "Referrers",
+		Description: `Retrieve information about referrers.`,
+		Methods: []MethodDescriptor{
+			{
+				Method:      "GET",
+				Description: "Fetch the referrers of the artifact identified by `digest`.",
+				Requests: []RequestDescriptor{
+					{
+						Name:        "referrers",
+						Description: "Request an unabridged list of referrers.",
+						Successes: []ResponseDescriptor{
+							{
+								Description: "Returns an image index containing all referrers as a json response.",
+								StatusCode:  http.StatusOK,
+								Headers: []ParameterDescriptor{
+									{
+										Name:        "Content-Length",
+										Type:        "integer",
+										Description: "Length of the JSON response body.",
+										Format:      "<length>",
+									},
+									linkHeader,
+								},
+								Body: BodyDescriptor{
+									ContentType: "application/json",
+									Format: `{
+												"schemaVersion": 2,
+												"mediaType": "application/vnd.oci.image.index.v1+json",
+												"manifests": [
+													<manifest>,
+													...
+												]
+											}`,
+								},
+							},
+						},
+						Failures: []ResponseDescriptor{
+							{
+								Description: "The registry does not support referrers API.",
+								StatusCode:  http.StatusNotFound,
+							},
+							{
+								Description: "There was a problem with the request that needs to be addressed by the client, such as an invalid `name` or `digest`.",
+								StatusCode:  http.StatusBadRequest,
+								ErrorCodes: []errcode.ErrorCode{
+									ErrorCodeDigestInvalid,
+								},
+								Body: BodyDescriptor{
+									ContentType: "application/json",
+									Format:      errorsBody,
+								},
+							},
+							deniedResponseDescriptor,
+							tooManyRequestsDescriptor,
+						},
+					},
+					{
+						// may need to change to accommodate multiple filters applied.
+						// spec is not clear regarding applying multiple filters
+						Name:        "referrers with filtering",
+						Description: "Request a list of referrers filtered on artifact type.",
+						QueryParameters: []ParameterDescriptor{
+							{
+								Name:        "artifactType",
+								Type:        "string",
+								Description: "This is the artifact type to be appied on the filter.",
+								Format:      "<string>",
+								Required:    false,
+							},
+						},
+						Successes: []ResponseDescriptor{
+							{
+								Description: "Returns an image index containing all referrers as a json response with the filter applied.",
+								StatusCode:  http.StatusOK,
+								Headers: []ParameterDescriptor{
+									{
+										Name:        "Content-Length",
+										Type:        "integer",
+										Description: "Length of the JSON response body.",
+										Format:      "<length>",
+									},
+									linkHeader,
+								},
+								Body: BodyDescriptor{
+									ContentType: "application/json",
+									Format: `{
+												"schemaVersion": 2,
+												"mediaType": "application/vnd.oci.image.index.v1+json",
+												"manifests": [
+													<manifest>,
+													...
+												],
+												"annotations": {
+													"org.opencontainers.referrers.filtersApplied": <filter>,
+													...
+												}
+											}`,
+								},
+							},
+						},
+						Failures: []ResponseDescriptor{
+							{
+								Description: "The registry does not support referrers API.",
+								StatusCode:  http.StatusNotFound,
+							},
+							{
+								Description: "There was a problem with the request that needs to be addressed by the client, such as an invalid `name` or `digest`.",
+								StatusCode:  http.StatusBadRequest,
+								ErrorCodes: []errcode.ErrorCode{
+									ErrorCodeDigestInvalid,
+								},
+								Body: BodyDescriptor{
+									ContentType: "application/json",
+									Format:      errorsBody,
+								},
+							},
+							deniedResponseDescriptor,
+							tooManyRequestsDescriptor,
+						},
+					},
+				},
+			},
+		},
+	},
 }
 
 var routeDescriptorsMap map[string]RouteDescriptor
