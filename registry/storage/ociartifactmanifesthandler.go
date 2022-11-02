@@ -6,7 +6,10 @@ import (
 
 	"github.com/distribution/distribution/v3"
 	dcontext "github.com/distribution/distribution/v3/context"
+	"github.com/distribution/distribution/v3/manifest/manifestlist"
 	"github.com/distribution/distribution/v3/manifest/ociartifact"
+	"github.com/distribution/distribution/v3/manifest/schema1"
+	"github.com/distribution/distribution/v3/manifest/schema2"
 	"github.com/opencontainers/go-digest"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 )
@@ -102,9 +105,20 @@ func (ms *ociArtifactManifestHandler) verifyArtifactManifest(ctx context.Context
 			continue
 		}
 		// check the presence
-		_, err = blobsService.Stat(ctx, descriptor.Digest)
-		if err != nil {
-			errs = append(errs, distribution.ErrManifestBlobUnknown{Digest: descriptor.Digest})
+		// TODO: we should be able to handle the case in which 'descriptor' only has Digest and no MediaType
+		// currently, if Digest is a manifest digest and MediaType is "", there will be an error.
+		switch descriptor.MediaType {
+		case v1.MediaTypeArtifactManifest, v1.MediaTypeImageManifest, v1.MediaTypeImageIndex,
+			schema1.MediaTypeManifest, schema2.MediaTypeManifest, manifestlist.MediaTypeManifestList:
+			exists, err := manifestService.Exists(ctx, descriptor.Digest)
+			if err != nil || !exists {
+				errs = append(errs, distribution.ErrManifestBlobUnknown{Digest: descriptor.Digest})
+			}
+		default:
+			_, err = blobsService.Stat(ctx, descriptor.Digest)
+			if err != nil {
+				errs = append(errs, distribution.ErrManifestBlobUnknown{Digest: descriptor.Digest})
+			}
 		}
 	}
 

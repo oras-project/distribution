@@ -587,8 +587,8 @@ func TestOCIArtifactManifestStorage(t *testing.T) {
 	am := ociartifact.Manifest{
 		MediaType:    v1.MediaTypeArtifactManifest,
 		ArtifactType: "test/main",
-		Blobs:        []distribution.Descriptor{{Digest: blobDigest}},
-		Subject:      &distribution.Descriptor{Digest: subjectDigest},
+		Blobs:        []distribution.Descriptor{{MediaType: v1.MediaTypeArtifactManifest, Digest: blobDigest}},
+		Subject:      &distribution.Descriptor{MediaType: v1.MediaTypeArtifactManifest, Digest: subjectDigest},
 	}
 	manifest, err := ociartifact.FromStruct(am)
 	if err != nil {
