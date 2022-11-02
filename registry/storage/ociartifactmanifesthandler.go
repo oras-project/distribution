@@ -11,7 +11,7 @@ import (
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 )
 
-// ociArtifactManifestHandler is a ManifestHandler that covers ocischema manifests.
+// ociArtifactManifestHandler is a ManifestHandler that covers oci artifact manifests.
 type ociArtifactManifestHandler struct {
 	repository distribution.Repository
 	blobStore  distribution.BlobStore
@@ -39,7 +39,7 @@ func (ms *ociArtifactManifestHandler) Put(ctx context.Context, manifest distribu
 		return "", fmt.Errorf("non-oci artifact manifest put to ociArtifactManifestHandler: %T", manifest)
 	}
 
-	if err := ms.verifyArtifactManifest(ms.ctx, *m, skipDependencyVerification); err != nil {
+	if err := ms.verifyArtifactManifest(ms.ctx, m, skipDependencyVerification); err != nil {
 		return "", err
 	}
 
@@ -60,7 +60,7 @@ func (ms *ociArtifactManifestHandler) Put(ctx context.Context, manifest distribu
 // verifyArtifactManifest ensures that the manifest content is valid from the
 // perspective of the registry. As a policy, the registry only tries to store
 // valid content, leaving trust policies of that content up to consumers.
-func (ms *ociArtifactManifestHandler) verifyArtifactManifest(ctx context.Context, mnfst ociartifact.DeserializedManifest, skipDependencyVerification bool) error {
+func (ms *ociArtifactManifestHandler) verifyArtifactManifest(ctx context.Context, mnfst *ociartifact.DeserializedManifest, skipDependencyVerification bool) error {
 	var errs distribution.ErrManifestVerification
 
 	if mnfst.MediaType != v1.MediaTypeArtifactManifest {
@@ -76,14 +76,34 @@ func (ms *ociArtifactManifestHandler) verifyArtifactManifest(ctx context.Context
 		return err
 	}
 
-	for _, descriptor := range mnfst.References() {
+	blobsService := ms.repository.Blobs(ctx)
+
+	// validate the subject
+	if mnfst.Subject != nil {
+		// check if the digest is valid
+		err := mnfst.Subject.Digest.Validate()
+		if err != nil {
+			errs = append(errs, err, distribution.ErrManifestBlobUnknown{Digest: mnfst.Subject.Digest})
+		} else {
+			// check the presence
+			exists, err := manifestService.Exists(ctx, mnfst.Subject.Digest)
+			if err != nil || !exists {
+				errs = append(errs, distribution.ErrManifestBlobUnknown{Digest: mnfst.Subject.Digest})
+			}
+		}
+	}
+
+	// validate the blobs
+	for _, descriptor := range mnfst.Blobs {
+		// check if the digest is valid
 		err := descriptor.Digest.Validate()
 		if err != nil {
 			errs = append(errs, err, distribution.ErrManifestBlobUnknown{Digest: descriptor.Digest})
 			continue
 		}
-		exists, err := manifestService.Exists(ctx, descriptor.Digest)
-		if err != nil || !exists {
+		// check the presence
+		_, err = blobsService.Stat(ctx, descriptor.Digest)
+		if err != nil {
 			errs = append(errs, distribution.ErrManifestBlobUnknown{Digest: descriptor.Digest})
 		}
 	}
