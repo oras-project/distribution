@@ -71,13 +71,6 @@ func (ms *ociArtifactManifestHandler) verifyArtifactManifest(ctx context.Context
 		return nil
 	}
 
-	manifestService, err := ms.repository.Manifests(ctx)
-	if err != nil {
-		return err
-	}
-
-	blobsService := ms.repository.Blobs(ctx)
-
 	// validate the subject
 	if mnfst.Subject != nil {
 		// check if the digest is valid
@@ -86,6 +79,10 @@ func (ms *ociArtifactManifestHandler) verifyArtifactManifest(ctx context.Context
 			errs = append(errs, err, distribution.ErrManifestBlobUnknown{Digest: mnfst.Subject.Digest})
 		} else {
 			// check the presence
+			manifestService, err := ms.repository.Manifests(ctx)
+			if err != nil {
+				return err
+			}
 			exists, err := manifestService.Exists(ctx, mnfst.Subject.Digest)
 			if err != nil || !exists {
 				errs = append(errs, distribution.ErrManifestBlobUnknown{Digest: mnfst.Subject.Digest})
@@ -94,6 +91,7 @@ func (ms *ociArtifactManifestHandler) verifyArtifactManifest(ctx context.Context
 	}
 
 	// validate the blobs
+	blobsService := ms.repository.Blobs(ctx)
 	for _, descriptor := range mnfst.Blobs {
 		// check if the digest is valid
 		err := descriptor.Digest.Validate()
@@ -101,6 +99,7 @@ func (ms *ociArtifactManifestHandler) verifyArtifactManifest(ctx context.Context
 			errs = append(errs, err, distribution.ErrManifestBlobUnknown{Digest: descriptor.Digest})
 			continue
 		}
+
 		_, err = blobsService.Stat(ctx, descriptor.Digest)
 		if err != nil {
 			errs = append(errs, distribution.ErrManifestBlobUnknown{Digest: descriptor.Digest})
