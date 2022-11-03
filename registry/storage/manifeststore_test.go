@@ -3,6 +3,7 @@ package storage
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"io"
 	"reflect"
 	"testing"
@@ -556,16 +557,14 @@ func TestOCIArtifactManifestStorage(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	bs := env.repository.Blobs(ctx)
+
 	// create and push the blob and subject manifests into the storage first
-	blobAM := ociartifact.Manifest{
+	blob, _ := json.Marshal(ociartifact.Manifest{
 		MediaType:    v1.MediaTypeArtifactManifest,
 		ArtifactType: "test/blob",
-	}
-	blob, err := ociartifact.FromStruct(blobAM)
-	if err != nil {
-		t.Fatal(err)
-	}
-	blobDigest, err := ms.Put(ctx, blob) // push blob manifest into the storage
+	})
+	blobDesc, err := bs.Put(ctx, v1.MediaTypeArtifactManifest, blob) // push blob manifest into the storage
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -587,7 +586,7 @@ func TestOCIArtifactManifestStorage(t *testing.T) {
 	am := ociartifact.Manifest{
 		MediaType:    v1.MediaTypeArtifactManifest,
 		ArtifactType: "test/main",
-		Blobs:        []distribution.Descriptor{{MediaType: v1.MediaTypeArtifactManifest, Digest: blobDigest}},
+		Blobs:        []distribution.Descriptor{blobDesc},
 		Subject:      &distribution.Descriptor{MediaType: v1.MediaTypeArtifactManifest, Digest: subjectDigest},
 	}
 	manifest, err := ociartifact.FromStruct(am)
