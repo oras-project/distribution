@@ -1682,7 +1682,7 @@ var routeDescriptors = []RouteDescriptor{
 									linkHeader,
 								},
 								Body: BodyDescriptor{
-									ContentType: "application/json",
+									ContentType: "application/vnd.oci.image.index.v1+json",
 									Format: `{
 	"schemaVersion": 2,
 	"mediaType": "application/vnd.oci.image.index.v1+json",
