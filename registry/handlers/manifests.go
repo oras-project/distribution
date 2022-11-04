@@ -335,12 +335,10 @@ func (imh *manifestHandler) PutManifest(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	var isAnOCIManifest bool
+	isAnOCIManifest := false
 	switch mediaType {
 	case v1.MediaTypeImageManifest, v1.MediaTypeArtifactManifest, v1.MediaTypeImageIndex:
 		isAnOCIManifest = true
-	default:
-		isAnOCIManifest = false
 	}
 
 	if isAnOCIManifest {
@@ -459,12 +457,7 @@ func (imh *manifestHandler) applyResourcePolicy(manifest distribution.Manifest) 
 			return errcode.ErrorCodeDenied.WithMessage("unknown manifest class for " + m.Config.MediaType)
 		}
 	case *ociartifact.DeserializedManifest:
-		switch m.MediaType {
-		case v1.MediaTypeArtifactManifest:
-			class = artifactClass
-		default:
-			return errcode.ErrorCodeDenied.WithMessage("unknown manifest class for " + m.MediaType)
-		}
+		class = artifactClass
 	}
 
 	if class == "" {
