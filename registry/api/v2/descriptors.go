@@ -1606,7 +1606,7 @@ var routeDescriptors = []RouteDescriptor{
 				Description: "Fetch the referrers of the artifact identified by `digest`.",
 				Requests: []RequestDescriptor{
 					{
-						Name:        "referrers",
+						Name:        "Referrers",
 						Description: "Request an unabridged list of referrers.",
 						Successes: []ResponseDescriptor{
 							{
@@ -1622,15 +1622,15 @@ var routeDescriptors = []RouteDescriptor{
 									linkHeader,
 								},
 								Body: BodyDescriptor{
-									ContentType: "application/json",
+									ContentType: "application/vnd.oci.image.index.v1+json",
 									Format: `{
-												"schemaVersion": 2,
-												"mediaType": "application/vnd.oci.image.index.v1+json",
-												"manifests": [
-													<manifest>,
-													...
-												]
-											}`,
+	"schemaVersion": 2,
+	"mediaType": "application/vnd.oci.image.index.v1+json",
+	"manifests": [
+		<manifest>,
+		...
+	]
+}`,
 								},
 							},
 						},
@@ -1684,17 +1684,17 @@ var routeDescriptors = []RouteDescriptor{
 								Body: BodyDescriptor{
 									ContentType: "application/json",
 									Format: `{
-												"schemaVersion": 2,
-												"mediaType": "application/vnd.oci.image.index.v1+json",
-												"manifests": [
-													<manifest>,
-													...
-												],
-												"annotations": {
-													"org.opencontainers.referrers.filtersApplied": <filter>,
-													...
-												}
-											}`,
+	"schemaVersion": 2,
+	"mediaType": "application/vnd.oci.image.index.v1+json",
+	"manifests": [
+		<manifest>,
+		...
+	],
+	"annotations": {
+		"org.opencontainers.referrers.filtersApplied": <filter>,
+		...
+	}
+}`,
 								},
 							},
 						},
@@ -1714,6 +1714,7 @@ var routeDescriptors = []RouteDescriptor{
 									Format:      errorsBody,
 								},
 							},
+							repositoryNotFoundResponseDescriptor,
 							deniedResponseDescriptor,
 							tooManyRequestsDescriptor,
 						},
