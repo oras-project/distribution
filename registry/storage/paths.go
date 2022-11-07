@@ -262,7 +262,7 @@ func pathFor(spec pathSpec) (string, error) {
 			return "", err
 		}
 		referrersRootPath := append(repoPrefix, v.name, "_referrers", "subjects")
-		referrersComponentPath := append(append(referrersRootPath, revisionComponents...), subjectComponents...)
+		referrersComponentPath := append(append(referrersRootPath, subjectComponents...), revisionComponents...)
 		return path.Join(append(referrersComponentPath, "link")...), nil
 	default:
 		// TODO(sday): This is an internal error. Ensure it doesn't escape (panic?).
@@ -514,4 +514,10 @@ func digestFromPath(digestPath string) (digest.Digest, error) {
 
 	dgst := digest.NewDigestFromHex(algo, hex)
 	return dgst, dgst.Validate()
+}
+
+// GetReferrersSearchPath generates the root path used for searching referrers.
+func GetReferrersSearchPath(repo string, subject digest.Digest) string {
+	repoPrefix := []string{storagePathRoot, storagePathVersion, "repositories"}
+	return path.Join(append(repoPrefix, repo, "_referrers", "subjects", subject.Algorithm().String(), subject.Hex())...)
 }

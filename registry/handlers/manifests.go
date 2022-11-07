@@ -74,7 +74,7 @@ func manifestDispatcher(ctx *Context, r *http.Request) http.Handler {
 	return mhandler
 }
 
-// manifestHandler handles http operations on image manifests.
+// manifestHandler handles http operations on manifests.
 type manifestHandler struct {
 	*Context
 
