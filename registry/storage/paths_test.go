@@ -91,8 +91,8 @@ func TestPathMapper(t *testing.T) {
 			spec: referrersLinkPathSpec{
 				name:            "bar",
 				revision:        "sha256:abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789",
-				subjectRevision: "sha256:defsbc0123456789defabc0123456789abcdef0123456789abcdef9876543210"},
-			expected: "/docker/registry/v2/repositories/bar/_referrers/sha256:abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789/sha256:defsbc0123456789defabc0123456789abcdef0123456789abcdef9876543210/link",
+				subjectRevision: "sha256:6c3c624b58dbbcd3c0dd82b4c53f04194d1247c6eebdaab7c610cf7d66709b3b"},
+			expected: "/docker/registry/v2/repositories/bar/_referrers/subjects/sha256/abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789/sha256/6c3c624b58dbbcd3c0dd82b4c53f04194d1247c6eebdaab7c610cf7d66709b3b/link",
 		},
 	} {
 		p, err := pathFor(testcase.spec)

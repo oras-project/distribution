@@ -247,7 +247,17 @@ func pathFor(spec pathSpec) (string, error) {
 	case repositoriesRootPathSpec:
 		return path.Join(repoPrefix...), nil
 	case referrersLinkPathSpec:
-		return path.Join(append(repoPrefix, v.name, "_referrers", v.revision.String(), v.subjectRevision.String(), "link")...), nil
+
+		revisionComponents, err := digestPathComponents(v.revision, false)
+		if err != nil {
+			return "", err
+		}
+
+		subjectComponents, err := digestPathComponents(v.subjectRevision, false)
+		if err != nil {
+			return "", err
+		}
+		return path.Join(append(append(append(append(repoPrefix, v.name, "_referrers", "subjects"), revisionComponents...), subjectComponents...), "link")...), nil
 	default:
 		// TODO(sday): This is an internal error. Ensure it doesn't escape (panic?).
 		return "", fmt.Errorf("unknown path spec: %#v", v)
