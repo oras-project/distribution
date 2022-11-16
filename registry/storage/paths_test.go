@@ -87,6 +87,13 @@ func TestPathMapper(t *testing.T) {
 			spec:     layersPathSpec{name: "foo/bar"},
 			expected: "/docker/registry/v2/repositories/foo/bar/_layers",
 		},
+		{
+			spec: referrersLinkPathSpec{
+				name:            "bar",
+				revision:        "sha256:abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789",
+				subjectRevision: "sha256:defsbc0123456789defabc0123456789abcdef0123456789abcdef9876543210"},
+			expected: "/docker/registry/v2/repositories/bar/_referrers/sha256:abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789/sha256:defsbc0123456789defabc0123456789abcdef0123456789abcdef9876543210/link",
+		},
 	} {
 		p, err := pathFor(testcase.spec)
 		if err != nil {

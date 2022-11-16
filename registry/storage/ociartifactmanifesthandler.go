@@ -3,7 +3,6 @@ package storage
 import (
 	"context"
 	"fmt"
-	"path"
 
 	"github.com/distribution/distribution/v3"
 	dcontext "github.com/distribution/distribution/v3/context"
@@ -12,8 +11,6 @@ import (
 	"github.com/opencontainers/go-digest"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 )
-
-const referrersStorageRootPath = "/docker/registry/v2"
 
 // ociArtifactManifestHandler is a ManifestHandler that covers oci artifact manifests.
 type ociArtifactManifestHandler struct {
@@ -133,21 +130,12 @@ func (ms *ociArtifactManifestHandler) indexReferrers(ctx context.Context, dm *oc
 	//  but need to consider the max path length in different os
 	subjectRevision := dm.Subject.Digest
 
-	rootPath := path.Join(referrersLinkPath(ms.repository.Named().Name()), subjectRevision.Algorithm().String(), subjectRevision.Hex())
-	referenceLinkPath := path.Join(rootPath, revision.Algorithm().String(), revision.Hex(), "link")
-	if err := ms.storageDriver.PutContent(ctx, referenceLinkPath, []byte(revision.String())); err != nil {
+	referrersLinkPath, err := pathFor(referrersLinkPathSpec{name: ms.repository.Named().Name(), revision: revision, subjectRevision: subjectRevision})
+	if err != nil {
+		return fmt.Errorf("failed to generate referrers link path for %v", revision)
+	}
+	if err := ms.storageDriver.PutContent(ctx, referrersLinkPath, []byte(revision.String())); err != nil {
 		return err
 	}
 	return nil
-}
-
-// // TODO: Should be removed and paths package used
-func referrersRepositoriesRootPath(name string) string {
-	return path.Join(referrersStorageRootPath, "repositories", name)
-}
-
-// TODO: Should be removed and defined instead in paths package
-// Requires paths package to be exported
-func referrersLinkPath(name string) string {
-	return path.Join(referrersRepositoriesRootPath(name), "_refs", "subjects")
 }
