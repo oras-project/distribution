@@ -40,6 +40,8 @@ const (
 //					data
 //					startedat
 //					hashstates/<algorithm>/<offset>
+//				-> _referrers/
+//
 //		-> blob/<algorithm>
 //			<split directory content addressable storage>
 //
@@ -69,42 +71,42 @@ const (
 //
 // We cover the path formats implemented by this path mapper below.
 //
-//			Manifests:
+//	Manifests:
 //
-//			manifestRevisionsPathSpec:      <root>/v2/repositories/<name>/_manifests/revisions/
-//			manifestRevisionPathSpec:      <root>/v2/repositories/<name>/_manifests/revisions/<algorithm>/<hex digest>/
-//			manifestRevisionLinkPathSpec:  <root>/v2/repositories/<name>/_manifests/revisions/<algorithm>/<hex digest>/link
+//	manifestRevisionsPathSpec:      <root>/v2/repositories/<name>/_manifests/revisions/
+//	manifestRevisionPathSpec:      <root>/v2/repositories/<name>/_manifests/revisions/<algorithm>/<hex digest>/
+//	manifestRevisionLinkPathSpec:  <root>/v2/repositories/<name>/_manifests/revisions/<algorithm>/<hex digest>/link
 //
-//			Tags:
+//	Tags:
 //
-//			manifestTagsPathSpec:                  <root>/v2/repositories/<name>/_manifests/tags/
-//			manifestTagPathSpec:                   <root>/v2/repositories/<name>/_manifests/tags/<tag>/
-//			manifestTagCurrentPathSpec:            <root>/v2/repositories/<name>/_manifests/tags/<tag>/current/link
-//			manifestTagIndexPathSpec:              <root>/v2/repositories/<name>/_manifests/tags/<tag>/index/
-//			manifestTagIndexEntryPathSpec:         <root>/v2/repositories/<name>/_manifests/tags/<tag>/index/<algorithm>/<hex digest>/
-//			manifestTagIndexEntryLinkPathSpec:     <root>/v2/repositories/<name>/_manifests/tags/<tag>/index/<algorithm>/<hex digest>/link
+//	manifestTagsPathSpec:                  <root>/v2/repositories/<name>/_manifests/tags/
+//	manifestTagPathSpec:                   <root>/v2/repositories/<name>/_manifests/tags/<tag>/
+//	manifestTagCurrentPathSpec:            <root>/v2/repositories/<name>/_manifests/tags/<tag>/current/link
+//	manifestTagIndexPathSpec:              <root>/v2/repositories/<name>/_manifests/tags/<tag>/index/
+//	manifestTagIndexEntryPathSpec:         <root>/v2/repositories/<name>/_manifests/tags/<tag>/index/<algorithm>/<hex digest>/
+//	manifestTagIndexEntryLinkPathSpec:     <root>/v2/repositories/<name>/_manifests/tags/<tag>/index/<algorithm>/<hex digest>/link
 //
-//			Blobs:
+//	Blobs:
 //
-//			layerLinkPathSpec:            <root>/v2/repositories/<name>/_layers/<algorithm>/<hex digest>/link
-//			layersPathSpec:               <root>/v2/repositories/<name>/_layers
+//	layerLinkPathSpec:            <root>/v2/repositories/<name>/_layers/<algorithm>/<hex digest>/link
+//	layersPathSpec:               <root>/v2/repositories/<name>/_layers
 //
-//			Uploads:
+//	Uploads:
 //
-//			uploadDataPathSpec:             <root>/v2/repositories/<name>/_uploads/<id>/data
-//			uploadStartedAtPathSpec:        <root>/v2/repositories/<name>/_uploads/<id>/startedat
-//			uploadHashStatePathSpec:        <root>/v2/repositories/<name>/_uploads/<id>/hashstates/<algorithm>/<offset>
+//	uploadDataPathSpec:             <root>/v2/repositories/<name>/_uploads/<id>/data
+//	uploadStartedAtPathSpec:        <root>/v2/repositories/<name>/_uploads/<id>/startedat
+//	uploadHashStatePathSpec:        <root>/v2/repositories/<name>/_uploads/<id>/hashstates/<algorithm>/<offset>
 //
-//		    Referrers:
+//	Referrers:
 //
-//	        referrersLinkPathSpec:          <root>/v2/repositories/<name>/_referrers/<algorithm>/<hex digest>/<subject algorithm>/<subject hex digest>/link
+//	referrersLinkPathSpec:          <root>/v2/repositories/<name>/_referrers/subjects/<algorithm>/<hex digest>/<subject algorithm>/<subject hex digest>/link
 //
-//			Blob Store:
+//	Blob Store:
 //
-//			blobsPathSpec:                  <root>/v2/blobs/
-//			blobPathSpec:                   <root>/v2/blobs/<algorithm>/<first two hex bytes of digest>/<hex digest>
-//			blobDataPathSpec:               <root>/v2/blobs/<algorithm>/<first two hex bytes of digest>/<hex digest>/data
-//			blobMediaTypePathSpec:               <root>/v2/blobs/<algorithm>/<first two hex bytes of digest>/<hex digest>/data
+//	blobsPathSpec:                  <root>/v2/blobs/
+//	blobPathSpec:                   <root>/v2/blobs/<algorithm>/<first two hex bytes of digest>/<hex digest>
+//	blobDataPathSpec:               <root>/v2/blobs/<algorithm>/<first two hex bytes of digest>/<hex digest>/data
+//	blobMediaTypePathSpec:               <root>/v2/blobs/<algorithm>/<first two hex bytes of digest>/<hex digest>/data
 //
 // For more information on the semantic meaning of each path and their
 // contents, please see the path spec documentation.
@@ -257,7 +259,9 @@ func pathFor(spec pathSpec) (string, error) {
 		if err != nil {
 			return "", err
 		}
-		return path.Join(append(append(append(append(repoPrefix, v.name, "_referrers", "subjects"), revisionComponents...), subjectComponents...), "link")...), nil
+		referrersRootPath := append(repoPrefix, v.name, "_referrers", "subjects")
+		referrersComponentPath := append(append(referrersRootPath, revisionComponents...), subjectComponents...)
+		return path.Join(append(referrersComponentPath, "link")...), nil
 	default:
 		// TODO(sday): This is an internal error. Ensure it doesn't escape (panic?).
 		return "", fmt.Errorf("unknown path spec: %#v", v)

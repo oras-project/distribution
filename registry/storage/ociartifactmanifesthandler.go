@@ -134,8 +134,5 @@ func (ms *ociArtifactManifestHandler) indexReferrers(ctx context.Context, dm *oc
 	if err != nil {
 		return fmt.Errorf("failed to generate referrers link path for %v", revision)
 	}
-	if err := ms.storageDriver.PutContent(ctx, referrersLinkPath, []byte(revision.String())); err != nil {
-		return err
-	}
-	return nil
+	return ms.storageDriver.PutContent(ctx, referrersLinkPath, []byte(revision.String()))
 }
