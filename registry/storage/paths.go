@@ -40,7 +40,9 @@ const (
 //					data
 //					startedat
 //					hashstates/<algorithm>/<offset>
-//				-> _referrers/
+//				-> _referrers/subjects
+//					-> <revision digest path>
+//						-> <subject digest path>/link
 //
 //		-> blob/<algorithm>
 //			<split directory content addressable storage>
