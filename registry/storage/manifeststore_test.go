@@ -407,7 +407,7 @@ func testOCIManifestStorage(t *testing.T, testname string, includeMediaTypes boo
 	// Build a manifest and store it and its layers in the registry
 
 	blobStore := env.repository.Blobs(ctx)
-	builder := ocischema.NewManifestBuilder(blobStore, []byte{}, map[string]string{})
+	builder := ocischema.NewManifestBuilder(blobStore, []byte{}, nil, map[string]string{})
 	err = builder.(*ocischema.Builder).SetMediaType(imageMediaType)
 	if err != nil {
 		t.Fatal(err)

@@ -126,7 +126,7 @@ func TestBuilder(t *testing.T) {
 	annotations := map[string]string{"hot": "potato"}
 
 	bs := &mockBlobService{descriptors: make(map[digest.Digest]distribution.Descriptor)}
-	builder := NewManifestBuilder(bs, imgJSON, annotations)
+	builder := NewManifestBuilder(bs, imgJSON, nil, annotations)
 
 	for _, d := range descriptors {
 		if err := builder.AppendReference(d); err != nil {

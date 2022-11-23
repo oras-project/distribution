@@ -22,6 +22,10 @@ type Builder struct {
 	// calls to AppendReference.
 	layers []distribution.Descriptor
 
+	// Subject specifies the descriptor of another manifest. This value is
+	// used by the referrers API.
+	subject *distribution.Descriptor
+
 	// Annotations contains arbitrary metadata relating to the targeted content.
 	annotations map[string]string
 
@@ -32,10 +36,11 @@ type Builder struct {
 // NewManifestBuilder is used to build new manifests for the current schema
 // version. It takes a BlobService so it can publish the configuration blob
 // as part of the Build process, and annotations.
-func NewManifestBuilder(bs distribution.BlobService, configJSON []byte, annotations map[string]string) distribution.ManifestBuilder {
+func NewManifestBuilder(bs distribution.BlobService, configJSON []byte, subject *distribution.Descriptor, annotations map[string]string) distribution.ManifestBuilder {
 	mb := &Builder{
 		bs:          bs,
 		configJSON:  make([]byte, len(configJSON)),
+		subject:     subject,
 		annotations: annotations,
 		mediaType:   v1.MediaTypeImageManifest,
 	}
@@ -63,6 +68,7 @@ func (mb *Builder) Build(ctx context.Context) (distribution.Manifest, error) {
 			MediaType:     mb.mediaType,
 		},
 		Layers:      make([]distribution.Descriptor, len(mb.layers)),
+		Subject:     mb.subject,
 		Annotations: mb.annotations,
 	}
 	copy(m.Layers, mb.layers)
