@@ -51,6 +51,10 @@ type Manifest struct {
 	// configuration.
 	Layers []distribution.Descriptor `json:"layers"`
 
+	// Subject specifies the descriptor of another manifest. This value is
+	// used by the referrers API.
+	Subject *distribution.Descriptor `json:"subject,omitempty"`
+
 	// Annotations contains arbitrary metadata for the image manifest.
 	Annotations map[string]string `json:"annotations,omitempty"`
 }
@@ -60,6 +64,7 @@ func (m Manifest) References() []distribution.Descriptor {
 	references := make([]distribution.Descriptor, 0, 1+len(m.Layers))
 	references = append(references, m.Config)
 	references = append(references, m.Layers...)
+	references = append(references, *m.Subject)
 	return references
 }
 

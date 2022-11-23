@@ -283,10 +283,11 @@ func (repo *repository) Manifests(ctx context.Context, options ...distribution.M
 			blobStore:  blobStore,
 		},
 		ocischemaHandler: &ocischemaManifestHandler{
-			ctx:          ctx,
-			repository:   repo,
-			blobStore:    blobStore,
-			manifestURLs: repo.registry.manifestURLs,
+			ctx:           ctx,
+			repository:    repo,
+			blobStore:     blobStore,
+			manifestURLs:  repo.registry.manifestURLs,
+			storageDriver: repo.driver,
 		},
 		ociartifactHandler: &ociArtifactManifestHandler{
 			repository:    repo,
