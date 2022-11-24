@@ -130,9 +130,13 @@ func (ms *ociArtifactManifestHandler) indexReferrers(ctx context.Context, dm *oc
 	//  but need to consider the max path length in different os
 	subjectRevision := dm.Subject.Digest
 
-	referrersLinkPath, err := pathFor(referrersLinkPathSpec{name: ms.repository.Named().Name(), revision: revision, subjectRevision: subjectRevision})
+	return indexWithSubject(ctx, ms.repository.Named().Name(), revision, subjectRevision, ms.storageDriver)
+}
+
+func indexWithSubject(ctx context.Context, repo string, revision digest.Digest, subjectRevision digest.Digest, sd driver.StorageDriver) error {
+	referrersLinkPath, err := pathFor(referrersLinkPathSpec{name: repo, revision: revision, subjectRevision: subjectRevision})
 	if err != nil {
 		return fmt.Errorf("failed to generate referrers link path for %v", revision)
 	}
-	return ms.storageDriver.PutContent(ctx, referrersLinkPath, []byte(revision.String()))
+	return sd.PutContent(ctx, referrersLinkPath, []byte(revision.String()))
 }

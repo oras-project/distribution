@@ -8,6 +8,7 @@ import (
 	"github.com/distribution/distribution/v3"
 	dcontext "github.com/distribution/distribution/v3/context"
 	"github.com/distribution/distribution/v3/manifest/ocischema"
+	"github.com/distribution/distribution/v3/manifest/schema2"
 	"github.com/distribution/distribution/v3/registry/storage/driver"
 	"github.com/opencontainers/go-digest"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
@@ -86,21 +87,6 @@ func (ms *ocischemaManifestHandler) verifyManifest(ctx context.Context, mnfst oc
 		return err
 	}
 
-	// validate the subject
-	if mnfst.Subject != nil {
-		// check if the digest is valid
-		err := mnfst.Subject.Digest.Validate()
-		if err != nil {
-			errs = append(errs, err, distribution.ErrManifestBlobUnknown{Digest: mnfst.Subject.Digest})
-		} else {
-			// check the presence
-			exists, err := manifestService.Exists(ctx, mnfst.Subject.Digest)
-			if err != nil || !exists {
-				errs = append(errs, distribution.ErrManifestBlobUnknown{Digest: mnfst.Subject.Digest})
-			}
-		}
-	}
-
 	blobsService := ms.repository.Blobs(ctx)
 
 	for _, descriptor := range mnfst.References() {
@@ -132,7 +118,7 @@ func (ms *ocischemaManifestHandler) verifyManifest(ctx context.Context, mnfst oc
 				}
 			}
 
-		case v1.MediaTypeImageManifest:
+		case v1.MediaTypeImageManifest, v1.MediaTypeArtifactManifest, v1.MediaTypeImageIndex, schema2.MediaTypeManifest:
 			var exists bool
 			exists, err = manifestService.Exists(ctx, descriptor.Digest)
 			if err != nil || !exists {
@@ -175,9 +161,5 @@ func (ms *ocischemaManifestHandler) indexReferrers(ctx context.Context, dm *ocis
 	//  but need to consider the max path length in different os
 	subjectRevision := dm.Subject.Digest
 
-	referrersLinkPath, err := pathFor(referrersLinkPathSpec{name: ms.repository.Named().Name(), revision: revision, subjectRevision: subjectRevision})
-	if err != nil {
-		return fmt.Errorf("failed to generate referrers link path for %v", revision)
-	}
-	return ms.storageDriver.PutContent(ctx, referrersLinkPath, []byte(revision.String()))
+	return indexWithSubject(ctx, ms.repository.Named().Name(), revision, subjectRevision, ms.storageDriver)
 }
