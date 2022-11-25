@@ -19,12 +19,6 @@ import (
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 )
 
-const (
-	// minimum page size used for # of digests to put in nextToken
-	minPageSize = 3
-	maxPageSize = 100
-)
-
 // referrersDispatcher takes the request context and builds the
 // appropriate handler for handling referrers requests.
 func referrersDispatcher(ctx *Context, r *http.Request) http.Handler {
