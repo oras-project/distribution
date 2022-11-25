@@ -58,11 +58,12 @@ func (h *referrersHandler) GetReferrers(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	annotations := map[string]string{}
-	query := r.URL.Query()
-	artifactTypeFilter := query.Get("artifactType")
-	if artifactTypeFilter != "" {
-		annotations[v1.AnnotationReferrersFiltersApplied] = "artifactType"
+	var annotations map[string]string
+	var artifactTypeFilter string
+	if artifactTypeFilter = r.URL.Query().Get("artifactType"); artifactTypeFilter != "" {
+		annotations = map[string]string{
+			v1.AnnotationReferrersFiltersApplied: "artifactType",
+		}
 	}
 	referrers, err := h.generateReferrersList(h, h.Digest, artifactTypeFilter)
 	if err != nil {
@@ -91,7 +92,6 @@ func (h *referrersHandler) GetReferrers(w http.ResponseWriter, r *http.Request) 
 
 func (h *referrersHandler) generateReferrersList(ctx context.Context, subjectDigest digest.Digest, artifactType string) ([]v1.Descriptor, error) {
 	dcontext.GetLogger(ctx).Debug("(*referrersHandler).generateReferrersList")
-	var referrers []v1.Descriptor
 	repo := h.Repository
 	manifests, err := repo.Manifests(ctx)
 	if err != nil {
@@ -99,6 +99,7 @@ func (h *referrersHandler) generateReferrersList(ctx context.Context, subjectDig
 	}
 	blobStatter := h.registry.BlobStatter()
 	rootPath := storage.GetReferrersSearchPath(repo.Named().Name(), subjectDigest)
+	var referrers []v1.Descriptor
 	err = enumerateReferrerLinks(ctx,
 		rootPath,
 		h.driver,
@@ -187,10 +188,5 @@ func readlink(ctx context.Context, path string, stDriver driver.StorageDriver) (
 		return "", err
 	}
 
-	linked, err := digest.Parse(string(content))
-	if err != nil {
-		return "", err
-	}
-
-	return linked, nil
+	return digest.Parse(string(content))
 }
