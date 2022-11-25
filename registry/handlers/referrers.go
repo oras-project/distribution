@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"net/http"
 	"path"
-	"strconv"
 
 	"github.com/distribution/distribution/v3"
 	dcontext "github.com/distribution/distribution/v3/context"
@@ -60,26 +59,13 @@ type referrersHandler struct {
 func (h *referrersHandler) GetReferrers(w http.ResponseWriter, r *http.Request) {
 	dcontext.GetLogger(h).Debug("GetReferrers")
 
-	query := r.URL.Query()
-	n := query.Get("n")
-	var nPage int
-	var nParseError error
-	if n == "" {
-		nPage = maxPageSize
-	} else {
-		nPage, nParseError = strconv.Atoi(n)
-		// client specified nPage must be greater than min page size and less than or equal to max page size
-		if nParseError != nil || nPage < minPageSize || nPage > maxPageSize {
-			nPage = maxPageSize
-		}
-	}
-
 	if h.Digest == "" {
 		h.Errors = append(h.Errors, v2.ErrorCodeManifestUnknown.WithDetail("digest not specified"))
 		return
 	}
 
 	annotations := map[string]string{}
+	query := r.URL.Query()
 	artifactTypeFilter := query.Get("artifactType")
 	if artifactTypeFilter != "" {
 		annotations[v1.AnnotationReferrersFiltersApplied] = "artifactType"
@@ -109,7 +95,7 @@ func (h *referrersHandler) GetReferrers(w http.ResponseWriter, r *http.Request) 
 	}
 }
 
-func (h *referrersHandler) generateReferrersList(ctx context.Context, revision digest.Digest, artifactType string) ([]v1.Descriptor, error) {
+func (h *referrersHandler) generateReferrersList(ctx context.Context, subjectDigest digest.Digest, artifactType string) ([]v1.Descriptor, error) {
 	dcontext.GetLogger(ctx).Debug("(*referrersHandler).generateReferrersList")
 	var referrers []v1.Descriptor
 	repo := h.Repository
@@ -118,13 +104,13 @@ func (h *referrersHandler) generateReferrersList(ctx context.Context, revision d
 		return nil, err
 	}
 	blobStatter := h.registry.BlobStatter()
-	rootPath := storage.GetReferrersSearchPath(repo.Named().Name(), revision)
+	rootPath := storage.GetReferrersSearchPath(repo.Named().Name(), subjectDigest)
 	err = enumerateReferrerLinks(ctx,
 		rootPath,
 		h.driver,
 		blobStatter,
-		func(subjectRevision digest.Digest) error {
-			man, err := manifests.Get(ctx, revision)
+		func(referrerDigest digest.Digest) error {
+			man, err := manifests.Get(ctx, referrerDigest)
 			if err != nil {
 				return err
 			}
@@ -136,7 +122,7 @@ func (h *referrersHandler) generateReferrersList(ctx context.Context, revision d
 			extractedArtifactType := artifactManifest.ArtifactType
 			// filtering by artifact type or bypass if no artifact type specified
 			if artifactType == "" || extractedArtifactType == artifactType {
-				desc, err := blobStatter.Stat(ctx, revision)
+				desc, err := blobStatter.Stat(ctx, referrerDigest)
 				if err != nil {
 					return err
 				}
