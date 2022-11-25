@@ -7,7 +7,9 @@ import (
 
 	"github.com/distribution/distribution/v3"
 	dcontext "github.com/distribution/distribution/v3/context"
+	"github.com/distribution/distribution/v3/manifest/manifestlist"
 	"github.com/distribution/distribution/v3/manifest/ocischema"
+	"github.com/distribution/distribution/v3/manifest/schema1"
 	"github.com/distribution/distribution/v3/manifest/schema2"
 	"github.com/distribution/distribution/v3/registry/storage/driver"
 	"github.com/opencontainers/go-digest"
@@ -118,7 +120,7 @@ func (ms *ocischemaManifestHandler) verifyManifest(ctx context.Context, mnfst oc
 				}
 			}
 
-		case v1.MediaTypeImageManifest, v1.MediaTypeArtifactManifest, v1.MediaTypeImageIndex, schema2.MediaTypeManifest:
+		case v1.MediaTypeImageManifest, v1.MediaTypeArtifactManifest, v1.MediaTypeImageIndex, schema1.MediaTypeManifest, schema2.MediaTypeManifest, manifestlist.MediaTypeManifestList:
 			var exists bool
 			exists, err = manifestService.Exists(ctx, descriptor.Digest)
 			if err != nil || !exists {
