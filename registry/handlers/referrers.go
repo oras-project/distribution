@@ -3,12 +3,14 @@ package handlers
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"path"
 
 	"github.com/distribution/distribution/v3"
 	dcontext "github.com/distribution/distribution/v3/context"
 	"github.com/distribution/distribution/v3/manifest/ociartifact"
+	"github.com/distribution/distribution/v3/manifest/ocischema"
 	"github.com/distribution/distribution/v3/registry/api/errcode"
 	v2 "github.com/distribution/distribution/v3/registry/api/v2"
 	"github.com/distribution/distribution/v3/registry/storage"
@@ -109,29 +111,14 @@ func (h *referrersHandler) generateReferrersList(ctx context.Context, subjectDig
 			if err != nil {
 				return err
 			}
-			artifactManifest, ok := man.(*ociartifact.DeserializedManifest)
-			if !ok {
-				// The PUT handler would guard against this situation. Skip this manifest.
-				return nil
+			switch man.(type) {
+			case *ocischema.DeserializedManifest:
+				return getImageReferrers(ctx, blobStatter, referrerDigest, man, &referrers)
+			case *ociartifact.DeserializedManifest:
+				return getArtifactReferrers(ctx, blobStatter, referrerDigest, man, &referrers, artifactType)
+			default:
+				return fmt.Errorf("referrers not supported for this manifest type")
 			}
-			extractedArtifactType := artifactManifest.ArtifactType
-			// filtering by artifact type or bypass if no artifact type specified
-			if artifactType == "" || extractedArtifactType == artifactType {
-				desc, err := blobStatter.Stat(ctx, referrerDigest)
-				if err != nil {
-					return err
-				}
-				desc.MediaType, _, _ = man.Payload()
-				artifactDesc := v1.Descriptor{
-					MediaType:    desc.MediaType,
-					Size:         desc.Size,
-					Digest:       desc.Digest,
-					ArtifactType: extractedArtifactType,
-					Annotations:  artifactManifest.Annotations,
-				}
-				referrers = append(referrers, artifactDesc)
-			}
-			return nil
 		})
 	if err != nil {
 		switch err.(type) {
@@ -189,4 +176,58 @@ func readlink(ctx context.Context, path string, stDriver driver.StorageDriver) (
 	}
 
 	return digest.Parse(string(content))
+}
+
+func getArtifactReferrers(ctx context.Context,
+	blobStatter distribution.BlobStatter,
+	referrerDigest digest.Digest,
+	man distribution.Manifest,
+	referrers *[]v1.Descriptor,
+	artifactType string) error {
+	artifactManifest, ok := man.(*ociartifact.DeserializedManifest)
+	if !ok {
+		return fmt.Errorf("the given manifest is not of type ociartifact.DeserializedManifest")
+	}
+	extractedArtifactType := artifactManifest.ArtifactType
+	// filtering by artifact type or bypass if no artifact type specified
+	if artifactType == "" || extractedArtifactType == artifactType {
+		desc, err := blobStatter.Stat(ctx, referrerDigest)
+		if err != nil {
+			return err
+		}
+		desc.MediaType, _, _ = man.Payload()
+		artifactDesc := v1.Descriptor{
+			MediaType:    desc.MediaType,
+			Size:         desc.Size,
+			Digest:       desc.Digest,
+			ArtifactType: extractedArtifactType,
+			Annotations:  artifactManifest.Annotations,
+		}
+		*referrers = append(*referrers, artifactDesc)
+	}
+	return nil
+}
+
+func getImageReferrers(ctx context.Context,
+	blobStatter distribution.BlobStatter,
+	referrerDigest digest.Digest,
+	man distribution.Manifest,
+	referrers *[]v1.Descriptor) error {
+	artifactManifest, ok := man.(*ocischema.DeserializedManifest)
+	if !ok {
+		return fmt.Errorf("the given manifest is not of type ocischema.DeserializedManifest")
+	}
+	desc, err := blobStatter.Stat(ctx, referrerDigest)
+	if err != nil {
+		return err
+	}
+	desc.MediaType, _, _ = man.Payload()
+	artifactDesc := v1.Descriptor{
+		MediaType:   desc.MediaType,
+		Size:        desc.Size,
+		Digest:      desc.Digest,
+		Annotations: artifactManifest.Annotations,
+	}
+	*referrers = append(*referrers, artifactDesc)
+	return nil
 }
