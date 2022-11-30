@@ -3,7 +3,6 @@ package handlers
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"path"
 
@@ -111,13 +110,27 @@ func (h *referrersHandler) generateReferrersList(ctx context.Context, subjectDig
 			if err != nil {
 				return err
 			}
-			switch man.(type) {
+			switch manifest := man.(type) {
 			case *ocischema.DeserializedManifest:
-				return getImageReferrers(ctx, blobStatter, referrerDigest, man, &referrers)
+				referrer, toAppend, err := generateReferrerFromImage(ctx, blobStatter, referrerDigest, manifest, artifactType)
+				if err != nil {
+					return err
+				}
+				if toAppend {
+					referrers = append(referrers, referrer)
+				}
+				return nil
 			case *ociartifact.DeserializedManifest:
-				return getArtifactReferrers(ctx, blobStatter, referrerDigest, man, &referrers, artifactType)
+				referrer, toAppend, err := generateReferrerFromArtifact(ctx, blobStatter, referrerDigest, manifest, artifactType)
+				if err != nil {
+					return err
+				}
+				if toAppend {
+					referrers = append(referrers, referrer)
+				}
+				return nil
 			default:
-				return fmt.Errorf("referrers not supported for this manifest type")
+				return nil
 			}
 		})
 	if err != nil {
@@ -178,22 +191,17 @@ func readlink(ctx context.Context, path string, stDriver driver.StorageDriver) (
 	return digest.Parse(string(content))
 }
 
-func getArtifactReferrers(ctx context.Context,
+func generateReferrerFromArtifact(ctx context.Context,
 	blobStatter distribution.BlobStatter,
 	referrerDigest digest.Digest,
-	man distribution.Manifest,
-	referrers *[]v1.Descriptor,
-	artifactType string) error {
-	artifactManifest, ok := man.(*ociartifact.DeserializedManifest)
-	if !ok {
-		return fmt.Errorf("the given manifest is not of type ociartifact.DeserializedManifest")
-	}
-	extractedArtifactType := artifactManifest.ArtifactType
+	man *ociartifact.DeserializedManifest,
+	artifactType string) (v1.Descriptor, bool, error) {
+	extractedArtifactType := man.ArtifactType
 	// filtering by artifact type or bypass if no artifact type specified
 	if artifactType == "" || extractedArtifactType == artifactType {
 		desc, err := blobStatter.Stat(ctx, referrerDigest)
 		if err != nil {
-			return err
+			return v1.Descriptor{}, false, err
 		}
 		desc.MediaType, _, _ = man.Payload()
 		artifactDesc := v1.Descriptor{
@@ -201,33 +209,34 @@ func getArtifactReferrers(ctx context.Context,
 			Size:         desc.Size,
 			Digest:       desc.Digest,
 			ArtifactType: extractedArtifactType,
-			Annotations:  artifactManifest.Annotations,
+			Annotations:  man.Annotations,
 		}
-		*referrers = append(*referrers, artifactDesc)
+		return artifactDesc, true, nil
 	}
-	return nil
+	return v1.Descriptor{}, false, nil
 }
 
-func getImageReferrers(ctx context.Context,
+func generateReferrerFromImage(ctx context.Context,
 	blobStatter distribution.BlobStatter,
 	referrerDigest digest.Digest,
-	man distribution.Manifest,
-	referrers *[]v1.Descriptor) error {
-	artifactManifest, ok := man.(*ocischema.DeserializedManifest)
-	if !ok {
-		return fmt.Errorf("the given manifest is not of type ocischema.DeserializedManifest")
+	man *ocischema.DeserializedManifest,
+	configMediaType string) (v1.Descriptor, bool, error) {
+	extractedConfigMediaType := man.Config.MediaType
+	// filtering by artifact type or bypass if no artifact type specified
+	if configMediaType == "" || extractedConfigMediaType == configMediaType {
+		desc, err := blobStatter.Stat(ctx, referrerDigest)
+		if err != nil {
+			return v1.Descriptor{}, false, err
+		}
+		desc.MediaType, _, _ = man.Payload()
+		imageDesc := v1.Descriptor{
+			MediaType:    desc.MediaType,
+			Size:         desc.Size,
+			Digest:       desc.Digest,
+			ArtifactType: extractedConfigMediaType,
+			Annotations:  man.Annotations,
+		}
+		return imageDesc, true, nil
 	}
-	desc, err := blobStatter.Stat(ctx, referrerDigest)
-	if err != nil {
-		return err
-	}
-	desc.MediaType, _, _ = man.Payload()
-	artifactDesc := v1.Descriptor{
-		MediaType:   desc.MediaType,
-		Size:        desc.Size,
-		Digest:      desc.Digest,
-		Annotations: artifactManifest.Annotations,
-	}
-	*referrers = append(*referrers, artifactDesc)
-	return nil
+	return v1.Descriptor{}, false, nil
 }
