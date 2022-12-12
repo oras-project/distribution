@@ -543,6 +543,63 @@ func testOCIManifestStorage(t *testing.T, testname string, includeMediaTypes boo
 		t.Fatalf("%s: unexpected MediaType for index payload, %s", testname, payloadMediaType)
 	}
 
+	// Test deleting the manifest
+	err = ms.Delete(ctx, manifestDigest)
+	if err != nil {
+		t.Fatalf("unexpected an error deleting manifest by digest: %v", err)
+	}
+
+	exists, err := ms.Exists(ctx, manifestDigest)
+	if err != nil {
+		t.Fatalf("Error querying manifest existence")
+	}
+	if exists {
+		t.Errorf("Deleted manifest should not exist")
+	}
+
+	deletedManifest, err := ms.Get(ctx, manifestDigest)
+	if err == nil {
+		t.Errorf("Unexpected success getting deleted manifest")
+	}
+	switch err.(type) {
+	case distribution.ErrManifestUnknownRevision:
+		break
+	default:
+		t.Errorf("Unexpected error getting deleted manifest: %s", reflect.ValueOf(err).Type())
+	}
+
+	if deletedManifest != nil {
+		t.Errorf("Deleted manifest get returned non-nil")
+	}
+
+	// test deleting the index
+	err = ms.Delete(ctx, indexDigest)
+	if err != nil {
+		t.Fatalf("unexpected an error deleting manifest by digest: %v", err)
+	}
+
+	exists, err = ms.Exists(ctx, indexDigest)
+	if err != nil {
+		t.Fatalf("Error querying manifest existence")
+	}
+	if exists {
+		t.Errorf("Deleted manifest should not exist")
+	}
+
+	deletedIndex, err := ms.Get(ctx, indexDigest)
+	if err == nil {
+		t.Errorf("Unexpected success getting deleted manifest")
+	}
+	switch err.(type) {
+	case distribution.ErrManifestUnknownRevision:
+		break
+	default:
+		t.Errorf("Unexpected error getting deleted manifest: %s", reflect.ValueOf(err).Type())
+	}
+
+	if deletedIndex != nil {
+		t.Errorf("Deleted manifest get returned non-nil")
+	}
 }
 
 func TestOCIArtifactManifestStorage(t *testing.T) {
@@ -621,6 +678,35 @@ func TestOCIArtifactManifestStorage(t *testing.T) {
 
 	if payloadMediaType != v1.MediaTypeArtifactManifest {
 		t.Fatalf("unexpected MediaType for manifest payload, %s", payloadMediaType)
+	}
+
+	// Test deleting the manifest
+	err = ms.Delete(ctx, manifestDigest)
+	if err != nil {
+		t.Fatalf("unexpected an error deleting manifest by digest: %v", err)
+	}
+
+	exists, err := ms.Exists(ctx, manifestDigest)
+	if err != nil {
+		t.Fatalf("Error querying manifest existence")
+	}
+	if exists {
+		t.Errorf("Deleted manifest should not exist")
+	}
+
+	deletedManifest, err := ms.Get(ctx, manifestDigest)
+	if err == nil {
+		t.Errorf("Unexpected success getting deleted manifest")
+	}
+	switch err.(type) {
+	case distribution.ErrManifestUnknownRevision:
+		break
+	default:
+		t.Errorf("Unexpected error getting deleted manifest: %s", reflect.ValueOf(err).Type())
+	}
+
+	if deletedManifest != nil {
+		t.Errorf("Deleted manifest get returned non-nil")
 	}
 }
 
