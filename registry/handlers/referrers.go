@@ -67,6 +67,9 @@ func (h *referrersHandler) GetReferrers(w http.ResponseWriter, r *http.Request) 
 		}
 	}
 	referrers, err := h.generateReferrersList(h, h.Digest, artifactTypeFilter)
+	if len(referrers) == 0 {
+		referrers = []v1.Descriptor{}
+	}
 	if err != nil {
 		if _, ok := err.(distribution.ErrManifestUnknownRevision); ok {
 			h.Errors = append(h.Errors, v2.ErrorCodeManifestUnknown.WithDetail(err))
