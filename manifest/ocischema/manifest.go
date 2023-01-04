@@ -64,9 +64,6 @@ func (m Manifest) References() []distribution.Descriptor {
 	references := make([]distribution.Descriptor, 0, 1+len(m.Layers))
 	references = append(references, m.Config)
 	references = append(references, m.Layers...)
-	if m.Subject != nil {
-		references = append(references, *m.Subject)
-	}
 	return references
 }
 

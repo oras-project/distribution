@@ -6,7 +6,9 @@ import (
 
 	"github.com/distribution/distribution/v3"
 	dcontext "github.com/distribution/distribution/v3/context"
+	"github.com/distribution/distribution/v3/manifest/manifestlist"
 	"github.com/distribution/distribution/v3/manifest/ociartifact"
+	"github.com/distribution/distribution/v3/manifest/schema2"
 	"github.com/distribution/distribution/v3/registry/storage/driver"
 	"github.com/opencontainers/go-digest"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
@@ -78,22 +80,22 @@ func (ms *ociArtifactManifestHandler) verifyArtifactManifest(ctx context.Context
 		return nil
 	}
 
-	// validate the subject
+	// For subject, we need to verify that:
+	// First, its digest is valid. Second, it is a manifest.
+	// No need to check its existence.
 	if mnfst.Subject != nil {
 		// check if the digest is valid
 		err := mnfst.Subject.Digest.Validate()
 		if err != nil {
 			errs = append(errs, err, distribution.ErrManifestBlobUnknown{Digest: mnfst.Subject.Digest})
-		} else {
-			// check the presence
-			manifestService, err := ms.repository.Manifests(ctx)
-			if err != nil {
-				return err
-			}
-			exists, err := manifestService.Exists(ctx, mnfst.Subject.Digest)
-			if err != nil || !exists {
-				errs = append(errs, distribution.ErrManifestBlobUnknown{Digest: mnfst.Subject.Digest})
-			}
+		}
+		// check the media type of subject
+		if mnfst.Subject.MediaType != v1.MediaTypeImageManifest &&
+			mnfst.Subject.MediaType != v1.MediaTypeArtifactManifest &&
+			mnfst.Subject.MediaType != v1.MediaTypeImageIndex &&
+			mnfst.Subject.MediaType != schema2.MediaTypeManifest &&
+			mnfst.Subject.MediaType != manifestlist.MediaTypeManifestList {
+			errs = append(errs, fmt.Errorf("subject is not a manifest"))
 		}
 	}
 

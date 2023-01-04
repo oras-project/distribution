@@ -52,9 +52,6 @@ type Manifest struct {
 func (m Manifest) References() []distribution.Descriptor {
 	var references []distribution.Descriptor
 	references = append(references, m.Blobs...)
-	if m.Subject != nil {
-		references = append(references, *m.Subject)
-	}
 	return references
 }
 
