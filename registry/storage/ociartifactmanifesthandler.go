@@ -90,12 +90,11 @@ func (ms *ociArtifactManifestHandler) verifyArtifactManifest(ctx context.Context
 			errs = append(errs, err, distribution.ErrManifestBlobUnknown{Digest: mnfst.Subject.Digest})
 		}
 		// check the media type of subject
-		if mnfst.Subject.MediaType != v1.MediaTypeImageManifest &&
-			mnfst.Subject.MediaType != v1.MediaTypeArtifactManifest &&
-			mnfst.Subject.MediaType != v1.MediaTypeImageIndex &&
-			mnfst.Subject.MediaType != schema2.MediaTypeManifest &&
-			mnfst.Subject.MediaType != manifestlist.MediaTypeManifestList {
-			errs = append(errs, fmt.Errorf("subject is not a manifest"))
+		switch mnfst.Subject.MediaType {
+		case v1.MediaTypeImageManifest, v1.MediaTypeArtifactManifest, v1.MediaTypeImageIndex, schema2.MediaTypeManifest, manifestlist.MediaTypeManifestList:
+			// no operations for known manifest media types
+		default:
+			errs = append(errs, distribution.ErrInvalidSubjectMediaType)
 		}
 	}
 

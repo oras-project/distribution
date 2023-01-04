@@ -24,6 +24,10 @@ var ErrUnsupported = errors.New("operation unsupported")
 // manifest but the registry is configured to reject it
 var ErrSchemaV1Unsupported = errors.New("manifest schema v1 unsupported")
 
+// ErrInvalidSubjectMediaType is returned when a manifest has a subject that is
+// not a manifest
+var ErrInvalidSubjectMediaType = errors.New("subject is not a manifest")
+
 // ErrTagUnknown is returned if the given tag is not known by the tag service
 type ErrTagUnknown struct {
 	Tag string

@@ -93,7 +93,7 @@ func TestArtifactManifest(t *testing.T) {
 
 	// Test DeserializedManifest.References()
 	references := deserialized.References()
-	if len(references) != 2 {
+	if len(references) != 1 {
 		t.Fatalf("unexpected number of references: %d", len(references))
 	}
 }

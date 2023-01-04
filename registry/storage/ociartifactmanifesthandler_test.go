@@ -19,9 +19,9 @@ func TestVerifyOCIArtifactManifestBlobsAndSubject(t *testing.T) {
 	repo := makeRepository(t, registry, strings.ToLower(t.Name()))
 	manifestService := makeManifestService(t, repo)
 
-	subject, err := repo.Blobs(ctx).Put(ctx, v1.MediaTypeImageManifest, nil)
-	if err != nil {
-		t.Fatal(err)
+	subject := distribution.Descriptor{
+		Digest:    digest.Digest("sha256:1a9ec845ee94c202b2d5da74a24f0ed2058318bfa9879fa541efaecba272e86b"),
+		MediaType: v1.MediaTypeImageManifest,
 	}
 
 	blob, err := repo.Blobs(ctx).Put(ctx, v1.MediaTypeImageLayer, nil)
@@ -98,8 +98,19 @@ func TestVerifyOCIArtifactManifestBlobsAndSubject(t *testing.T) {
 		},
 		// subject with invalid digest
 		{
-			distribution.Descriptor{Digest: digest.Digest("invalid")},
+			distribution.Descriptor{
+				Digest:    digest.Digest("invalid"),
+				MediaType: v1.MediaTypeImageManifest,
+			},
 			digest.ErrDigestInvalidFormat,
+		},
+		// subject with a non-manifest mediatype
+		{
+			distribution.Descriptor{
+				Digest:    digest.Digest("sha256:1a9ec845ee94c202b2d5da74a24f0ed2058318bfa9879fa541efaecba272e86b"),
+				MediaType: v1.MediaTypeImageConfig,
+			},
+			distribution.ErrInvalidSubjectMediaType,
 		},
 	}
 
