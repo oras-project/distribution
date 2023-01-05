@@ -165,19 +165,14 @@ func (ms *manifestStore) Delete(ctx context.Context, dgst digest.Digest) error {
 		return err
 	}
 
-	// delete the manifest from its subject's indexed referrers, if applicable
-	content, err := ms.blobStore.Get(ctx, dgst)
+	man, err := ms.Get(ctx, dgst)
 	if err != nil {
-		return fmt.Errorf("unable to retrieve manifest content %w", err)
-	}
-
-	var versioned manifest.Versioned
-	if err = json.Unmarshal(content, &versioned); err != nil {
-		return fmt.Errorf("unable to retrieve version info %w", err)
+		return fmt.Errorf("unable to retrieve manifest %w", err)
 	}
 
 	var subject *distribution.Descriptor
-	switch versioned.MediaType {
+	mt, content, _ := man.Payload()
+	switch mt {
 	case v1.MediaTypeArtifactManifest:
 		m := &ociartifact.DeserializedManifest{}
 		if err := m.UnmarshalJSON(content); err != nil {
@@ -202,7 +197,7 @@ func (ms *manifestStore) Delete(ctx context.Context, dgst digest.Digest) error {
 		}
 	}
 
-	return ms.blobStore.blobAccessController.Clear(ctx, dgst)
+	return ms.blobStore.Delete(ctx, dgst)
 }
 
 func (ms *manifestStore) Enumerate(ctx context.Context, ingester func(digest.Digest) error) error {
