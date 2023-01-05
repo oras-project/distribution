@@ -154,6 +154,44 @@ func (ms *manifestStore) Put(ctx context.Context, manifest distribution.Manifest
 // Delete removes the revision of the specified manifest.
 func (ms *manifestStore) Delete(ctx context.Context, dgst digest.Digest) error {
 	dcontext.GetLogger(ms.ctx).Debug("(*manifestStore).Delete")
+
+	// delete the manifest from its subject's indexed referrers, if applicable
+	content, err := ms.blobStore.Get(ctx, dgst)
+	if err != nil {
+		return fmt.Errorf("unable to retrieve manifest content %w", err)
+	}
+
+	var versioned manifest.Versioned
+	if err = json.Unmarshal(content, &versioned); err != nil {
+		return fmt.Errorf("unable to retrieve version info %w", err)
+	}
+
+	var subject *distribution.Descriptor
+	switch versioned.MediaType {
+	case v1.MediaTypeArtifactManifest:
+		m := &ociartifact.DeserializedManifest{}
+		if err := m.UnmarshalJSON(content); err != nil {
+			return fmt.Errorf("unable to unmarshall manifest %w", err)
+		}
+		subject = m.Subject
+	case v1.MediaTypeImageManifest:
+		m := &ocischema.DeserializedManifest{}
+		if err := m.UnmarshalJSON(content); err != nil {
+			return fmt.Errorf("unable to unmarshall manifest %w", err)
+		}
+		subject = m.Subject
+	}
+
+	if subject != nil {
+		referrersLinkPath, err := pathFor(referrersLinkPathSpec{name: ms.repository.Named().Name(), revision: dgst, subjectRevision: subject.Digest})
+		if err != nil {
+			return fmt.Errorf("failed to generate referrers link path for %v", dgst)
+		}
+		if err = ms.repository.driver.Delete(ctx, referrersLinkPath); err != nil {
+			return err
+		}
+	}
+
 	return ms.blobStore.Delete(ctx, dgst)
 }
 
