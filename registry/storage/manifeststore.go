@@ -155,6 +155,12 @@ func (ms *manifestStore) Put(ctx context.Context, manifest distribution.Manifest
 func (ms *manifestStore) Delete(ctx context.Context, dgst digest.Digest) error {
 	dcontext.GetLogger(ms.ctx).Debug("(*manifestStore).Delete")
 
+	// Ensure the blob is available for deletion
+	_, err := ms.blobStore.blobAccessController.Stat(ctx, dgst)
+	if err != nil {
+		return err
+	}
+
 	// delete the manifest from its subject's indexed referrers, if applicable
 	content, err := ms.blobStore.Get(ctx, dgst)
 	if err != nil {
