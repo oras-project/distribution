@@ -168,7 +168,7 @@ func (ms *manifestStore) Delete(ctx context.Context, dgst digest.Digest) error {
 	// Remove the manifest from its subject's indexed referrers, if applicable
 	man, err := ms.Get(ctx, dgst)
 	if err != nil {
-		return fmt.Errorf("unable to retrieve manifest %w", err)
+		return fmt.Errorf("unable to retrieve manifest: %w", err)
 	}
 
 	var subject *distribution.Descriptor
@@ -177,8 +177,6 @@ func (ms *manifestStore) Delete(ctx context.Context, dgst digest.Digest) error {
 		subject = m.Subject
 	case *ocischema.DeserializedManifest:
 		subject = m.Subject
-	default:
-		return ms.blobStore.Delete(ctx, dgst)
 	}
 
 	if subject != nil {
