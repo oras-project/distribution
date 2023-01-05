@@ -160,31 +160,25 @@ func (ms *manifestStore) Delete(ctx context.Context, dgst digest.Digest) error {
 	}
 
 	// Ensure the blob is available for deletion
-	_, err := ms.blobStore.blobAccessController.Stat(ctx, dgst)
+	_, err := ms.blobStore.Stat(ctx, dgst)
 	if err != nil {
 		return err
 	}
 
+	// Remove the manifest from its subject's indexed referrers, if applicable
 	man, err := ms.Get(ctx, dgst)
 	if err != nil {
 		return fmt.Errorf("unable to retrieve manifest %w", err)
 	}
 
 	var subject *distribution.Descriptor
-	mt, content, _ := man.Payload()
-	switch mt {
-	case v1.MediaTypeArtifactManifest:
-		m := &ociartifact.DeserializedManifest{}
-		if err := m.UnmarshalJSON(content); err != nil {
-			return fmt.Errorf("unable to unmarshall manifest %w", err)
-		}
+	switch m := man.(type) {
+	case *ociartifact.DeserializedManifest:
 		subject = m.Subject
-	case v1.MediaTypeImageManifest:
-		m := &ocischema.DeserializedManifest{}
-		if err := m.UnmarshalJSON(content); err != nil {
-			return fmt.Errorf("unable to unmarshall manifest %w", err)
-		}
+	case *ocischema.DeserializedManifest:
 		subject = m.Subject
+	default:
+		return ms.blobStore.Delete(ctx, dgst)
 	}
 
 	if subject != nil {
@@ -197,7 +191,7 @@ func (ms *manifestStore) Delete(ctx context.Context, dgst digest.Digest) error {
 		}
 	}
 
-	return ms.blobStore.Delete(ctx, dgst)
+	return ms.blobStore.blobAccessController.Clear(ctx, dgst)
 }
 
 func (ms *manifestStore) Enumerate(ctx context.Context, ingester func(digest.Digest) error) error {
