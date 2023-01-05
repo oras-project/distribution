@@ -155,6 +155,10 @@ func (ms *manifestStore) Put(ctx context.Context, manifest distribution.Manifest
 func (ms *manifestStore) Delete(ctx context.Context, dgst digest.Digest) error {
 	dcontext.GetLogger(ms.ctx).Debug("(*manifestStore).Delete")
 
+	if !ms.blobStore.deleteEnabled {
+		return distribution.ErrUnsupported
+	}
+
 	// Ensure the blob is available for deletion
 	_, err := ms.blobStore.blobAccessController.Stat(ctx, dgst)
 	if err != nil {
@@ -198,7 +202,7 @@ func (ms *manifestStore) Delete(ctx context.Context, dgst digest.Digest) error {
 		}
 	}
 
-	return ms.blobStore.Delete(ctx, dgst)
+	return ms.blobStore.blobAccessController.Clear(ctx, dgst)
 }
 
 func (ms *manifestStore) Enumerate(ctx context.Context, ingester func(digest.Digest) error) error {
