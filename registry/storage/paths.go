@@ -41,8 +41,8 @@ const (
 //					startedat
 //					hashstates/<algorithm>/<offset>
 //				-> _referrers/subjects
-//					-> <revision digest path>
-//						-> <subject digest path>/link
+//					-> <subject digest path>
+//						-> <revision digest path>/link
 //
 //		-> blob/<algorithm>
 //			<split directory content addressable storage>
@@ -101,7 +101,7 @@ const (
 //
 //	Referrers:
 //
-//	referrersLinkPathSpec:          <root>/v2/repositories/<name>/_referrers/subjects/<algorithm>/<hex digest>/<subject algorithm>/<subject hex digest>/link
+//	referrersLinkPathSpec:          <root>/v2/repositories/<name>/_referrers/subjects/<subject algorithm>/<subject hex digest>/<algorithm>/<hex digest>/link
 //
 //	Blob Store:
 //
