@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
 	"path"
 	"strconv"
 
@@ -20,6 +21,12 @@ import (
 	"github.com/opencontainers/go-digest"
 	"github.com/opencontainers/image-spec/specs-go"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
+)
+
+const (
+	pageSizeMin     = 1
+	pageSizeDefault = 10
+	pageSizeMax     = 100
 )
 
 // referrersDispatcher takes the request context and builds the
@@ -52,9 +59,6 @@ type referrersHandler struct {
 	Digest digest.Digest
 }
 
-const maxPageSize = 10
-const minPageSize = 1
-
 // GetReferrers fetches the list of referrers as an image index from the storage.
 func (h *referrersHandler) GetReferrers(w http.ResponseWriter, r *http.Request) {
 	dcontext.GetLogger(h).Debug("GetReferrers")
@@ -74,15 +78,15 @@ func (h *referrersHandler) GetReferrers(w http.ResponseWriter, r *http.Request) 
 	}
 
 	// extract the page size info. Users define page size by using the n
-	// query parameter. The default page size is 100.
-	pageSize, nParseError := strconv.Atoi(r.URL.Query().Get("n"))
-	if nParseError != nil || pageSize < minPageSize || pageSize > maxPageSize {
-		pageSize = maxPageSize
+	// query parameter. The default page size is 10.
+	pageSize, err := strconv.Atoi(r.URL.Query().Get("n"))
+	if err != nil || pageSize < pageSizeMin || pageSize > pageSizeMax {
+		pageSize = pageSizeDefault
 	}
 
 	// extract the page number info.
-	pageNumber, pParseError := strconv.Atoi(r.URL.Query().Get("p"))
-	if pParseError != nil || pageNumber < 0 {
+	pageNumber, err := strconv.Atoi(r.URL.Query().Get("p"))
+	if err != nil || pageNumber < 0 {
 		pageNumber = 0
 	}
 
@@ -109,7 +113,7 @@ func (h *referrersHandler) GetReferrers(w http.ResponseWriter, r *http.Request) 
 		referrers = referrers[startIndex:]
 	} else {
 		referrers = referrers[startIndex:(startIndex + pageSize)]
-		w.Header().Set("Link", generateLinkHeader(h.Repository.Named().Name(), h.Digest.String(), artifactTypeFilter, []string{}, pageSize, pageNumber+1))
+		w.Header().Set("Link", generateLinkHeader(h.Repository.Named().Name(), h.Digest.String(), artifactTypeFilter, pageSize, pageNumber+1))
 	}
 
 	response := v1.Index{
@@ -227,18 +231,17 @@ func readlink(ctx context.Context, path string, stDriver driver.StorageDriver) (
 	return digest.Parse(string(content))
 }
 
-func generateLinkHeader(repoName, subjectDigest, artifactType string, lastDigests []string, nPage int, p int) string {
-	url := fmt.Sprintf("/v2/%s/referrers/%s?p=%d",
-		repoName,
-		subjectDigest,
-		p)
+func generateLinkHeader(repoName, subjectDigest, artifactType string, pageSize int, p int) string {
+	linkURL := fmt.Sprintf("/v2/%s/referrers/%s", repoName, subjectDigest)
+	v := url.Values{}
+	v.Add("p", fmt.Sprint(p))
 	if artifactType != "" {
-		url = fmt.Sprintf("%s&artifactType=%s", url, artifactType)
+		v.Add("artifactType", artifactType)
 	}
-	if nPage > 0 {
-		url = fmt.Sprintf("%s&n=%d", url, nPage)
+	if pageSize > 0 {
+		v.Add("n", fmt.Sprint(pageSize))
 	}
-	return fmt.Sprintf("<%s>; rel=\"next\"", url)
+	return fmt.Sprintf("<%s?%s>; rel=\"next\"", linkURL, v.Encode())
 }
 
 func generateReferrerFromArtifact(ctx context.Context,
