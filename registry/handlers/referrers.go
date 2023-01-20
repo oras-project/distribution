@@ -52,7 +52,7 @@ type referrersHandler struct {
 	Digest digest.Digest
 }
 
-const maxPageSize = 100
+const maxPageSize = 10
 const minPageSize = 1
 
 // GetReferrers fetches the list of referrers as an image index from the storage.
@@ -81,8 +81,13 @@ func (h *referrersHandler) GetReferrers(w http.ResponseWriter, r *http.Request) 
 	}
 
 	// extract the page number info.
-	pageNumber, _ := strconv.Atoi(r.URL.Query().Get("p"))
+	pageNumber, pParseError := strconv.Atoi(r.URL.Query().Get("p"))
+	if pParseError != nil || pageNumber < 0 {
+		pageNumber = 0
+	}
 
+	// currently, pagination would call generateReferrersList multiple times
+	// and this is not efficient. This implementation is for testing purpose.
 	referrers, err := h.generateReferrersList(h, h.Digest, artifactTypeFilter)
 	if err != nil {
 		if _, ok := err.(distribution.ErrManifestUnknownRevision); ok {
@@ -93,21 +98,18 @@ func (h *referrersHandler) GetReferrers(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	if referrers == nil {
+	startIndex := pageNumber * pageSize
+
+	if referrers == nil || startIndex > len(referrers) {
 		referrers = []v1.Descriptor{}
 	}
 
-	// only consider pagination if # of referrers is greater than page size
-	if len(referrers) > pageSize {
-		startIndex := pageNumber * pageSize
-
-		// if there's only 1 page of results left
-		if len(referrers)-startIndex <= pageSize {
-			referrers = referrers[startIndex:]
-		} else {
-			referrers = referrers[startIndex:(startIndex + pageSize)]
-			w.Header().Set("Link", generateLinkHeader(h.Repository.Named().Name(), h.Digest.String(), artifactTypeFilter, []string{}, pageSize, pageNumber+1))
-		}
+	// if there's only 1 page of results left
+	if len(referrers)-startIndex <= pageSize {
+		referrers = referrers[startIndex:]
+	} else {
+		referrers = referrers[startIndex:(startIndex + pageSize)]
+		w.Header().Set("Link", generateLinkHeader(h.Repository.Named().Name(), h.Digest.String(), artifactTypeFilter, []string{}, pageSize, pageNumber+1))
 	}
 
 	response := v1.Index{
