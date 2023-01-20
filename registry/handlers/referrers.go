@@ -106,14 +106,12 @@ func (h *referrersHandler) GetReferrers(w http.ResponseWriter, r *http.Request) 
 
 	if referrers == nil || startIndex >= len(referrers) {
 		referrers = []v1.Descriptor{}
+	} else if len(referrers)-startIndex <= pageSize {
+		// only 1 page of results left
+		referrers = referrers[startIndex:]
 	} else {
-		// if there's only 1 page of results left
-		if len(referrers)-startIndex <= pageSize {
-			referrers = referrers[startIndex:]
-		} else {
-			referrers = referrers[startIndex:(startIndex + pageSize)]
-			w.Header().Set("Link", generateLinkHeader(h.Repository.Named().Name(), h.Digest.String(), artifactTypeFilter, pageSize, pageNumber+1))
-		}
+		referrers = referrers[startIndex:(startIndex + pageSize)]
+		w.Header().Set("Link", generateLinkHeader(h.Repository.Named().Name(), h.Digest.String(), artifactTypeFilter, pageSize, pageNumber+1))
 	}
 
 	response := v1.Index{
@@ -234,12 +232,12 @@ func readlink(ctx context.Context, path string, stDriver driver.StorageDriver) (
 func generateLinkHeader(repoName, subjectDigest, artifactType string, pageSize int, p int) string {
 	linkURL := fmt.Sprintf("/v2/%s/referrers/%s", repoName, subjectDigest)
 	v := url.Values{}
-	v.Add("p", fmt.Sprint(p))
+	v.Add("p", strconv.Itoa(p))
 	if artifactType != "" {
 		v.Add("artifactType", artifactType)
 	}
 	if pageSize > 0 {
-		v.Add("n", fmt.Sprint(pageSize))
+		v.Add("n", strconv.Itoa(pageSize))
 	}
 	return fmt.Sprintf("<%s?%s>; rel=\"next\"", linkURL, v.Encode())
 }
