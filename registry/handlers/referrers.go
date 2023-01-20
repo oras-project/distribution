@@ -110,7 +110,7 @@ func (h *referrersHandler) GetReferrers(w http.ResponseWriter, r *http.Request) 
 		// only 1 page of results left
 		referrers = referrers[startIndex:]
 	} else {
-		referrers = referrers[startIndex:(startIndex + pageSize)]
+		referrers = referrers[startIndex : startIndex+pageSize]
 		w.Header().Set("Link", generateLinkHeader(h.Repository.Named().Name(), h.Digest.String(), artifactTypeFilter, pageSize, pageNumber+1))
 	}
 
@@ -229,10 +229,10 @@ func readlink(ctx context.Context, path string, stDriver driver.StorageDriver) (
 	return digest.Parse(string(content))
 }
 
-func generateLinkHeader(repoName, subjectDigest, artifactType string, pageSize int, p int) string {
+func generateLinkHeader(repoName, subjectDigest, artifactType string, pageSize int, pageNumber int) string {
 	linkURL := fmt.Sprintf("/v2/%s/referrers/%s", repoName, subjectDigest)
 	v := url.Values{}
-	v.Add("p", strconv.Itoa(p))
+	v.Add("p", strconv.Itoa(pageNumber))
 	if artifactType != "" {
 		v.Add("artifactType", artifactType)
 	}
