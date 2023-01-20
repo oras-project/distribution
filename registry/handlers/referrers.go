@@ -108,12 +108,14 @@ func (h *referrersHandler) GetReferrers(w http.ResponseWriter, r *http.Request) 
 		referrers = []v1.Descriptor{}
 	}
 
-	// if there's only 1 page of results left
-	if len(referrers)-startIndex <= pageSize {
-		referrers = referrers[startIndex:]
-	} else {
-		referrers = referrers[startIndex:(startIndex + pageSize)]
-		w.Header().Set("Link", generateLinkHeader(h.Repository.Named().Name(), h.Digest.String(), artifactTypeFilter, pageSize, pageNumber+1))
+	if len(referrers) > pageSize {
+		// if there's only 1 page of results left
+		if len(referrers)-startIndex <= pageSize {
+			referrers = referrers[startIndex:]
+		} else {
+			referrers = referrers[startIndex:(startIndex + pageSize)]
+			w.Header().Set("Link", generateLinkHeader(h.Repository.Named().Name(), h.Digest.String(), artifactTypeFilter, pageSize, pageNumber+1))
+		}
 	}
 
 	response := v1.Index{
