@@ -104,7 +104,7 @@ func (h *referrersHandler) GetReferrers(w http.ResponseWriter, r *http.Request) 
 
 	startIndex := pageNumber * pageSize
 
-	if referrers == nil || startIndex > len(referrers) {
+	if referrers == nil || startIndex >= len(referrers) {
 		referrers = []v1.Descriptor{}
 	}
 
